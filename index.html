@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>Patton Inc</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:#0a0a09;display:flex;justify-content:center;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+#app{width:100%;max-width:390px;background:#111110;min-height:100vh;display:flex;flex-direction:column;}
+.screen{display:none;flex-direction:column;height:100vh;overflow:hidden;}
+.screen.active{display:flex;}
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.scroll::-webkit-scrollbar{display:none;}
+.sb{display:flex;justify-content:space-between;padding:14px 20px 4px;font-size:11px;font-weight:500;color:#F1EFE8;flex-shrink:0;background:#111110;}
+.topbar{display:flex;align-items:center;padding:8px 16px 10px;border-bottom:.5px solid #333331;flex-shrink:0;background:#111110;}
+.topbar .back{font-size:13px;color:#888780;cursor:pointer;min-width:50px;}
+.topbar .title{font-size:17px;font-weight:500;color:#F1EFE8;flex:1;text-align:center;}
+.topbar .right{min-width:50px;text-align:right;font-size:13px;cursor:pointer;}
+.nav{display:flex;justify-content:space-around;padding:10px 0 18px;background:#1C1C1A;border-top:.5px solid #333331;flex-shrink:0;}
+.ni{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;}
+.ni span{font-size:10px;color:#888780;}
+.ni.on span{color:#97C459;}
+.sh{padding:10px 16px 6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#888780;}
+.card{background:#1C1C1A;border-radius:12px;padding:12px 14px;margin:0 16px 8px;}
+.btn{border-radius:12px;padding:13px;text-align:center;font-size:13px;font-weight:500;cursor:pointer;display:block;}
+.bg{background:#27500A;color:#C0DD97;}
+.bb{background:#042C53;color:#85B7EB;}
+.br{background:#501313;color:#F09595;}
+.ba{background:#412402;color:#FAC775;}
+.bx{background:#252523;color:#F1EFE8;border:.5px solid #333331;}
+.tabs{display:flex;padding:0 16px;border-bottom:.5px solid #333331;flex-shrink:0;}
+.tab{flex:1;text-align:center;padding:8px 0;font-size:12px;font-weight:500;color:#888780;cursor:pointer;border-bottom:2px solid transparent;}
+.tab.on{color:#97C459;border-color:#97C459;}
+.inp{width:100%;border-radius:10px;padding:11px 14px;font-size:13px;background:#1C1C1A;border:.5px solid #333331;color:#F1EFE8;font-family:inherit;outline:none;}
+.inp:focus{border-color:#639922;}
+.pill{font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px;display:inline-block;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ── COLORS & DATA ────────────────────────────────────────────────────
+const G={bg:"#111110",s:"#1C1C1A",s2:"#252523",t:"#F1EFE8",m:"#888780",b:"#333331",
+  g:"#97C459",gB:"#27500A",gT:"#C0DD97",gD:"#5DCAA5",
+  r:"#F09595",rB:"#501313",
+  a:"#EF9F27",aB:"#412402",aT:"#FAC775",aD:"#BA7517",
+  bl:"#85B7EB",blB:"#042C53",pu:"#AFA9EC",puB:"#26215C"};
+
+const TIERS={
+  A:{l:"A-tier",d:"Scratch / low handicap",bg:"#412402",c:"#FAC775",br:"#854F0B"},
+  B:{l:"B-tier",d:"Mid handicap",bg:"#042C53",c:"#85B7EB",br:"#185FA5"},
+  C:{l:"C-tier",d:"Higher handicap",bg:"#27500A",c:"#C0DD97",br:"#3B6D11"},
+  D:{l:"D-tier",d:"Wildcard",bg:"#26215C",c:"#AFA9EC",br:"#534AB7"}
+};
+
+const AVC=[{bg:"#27500A",c:"#C0DD97"},{bg:"#042C53",c:"#85B7EB"},{bg:"#412402",c:"#FAC775"},
+  {bg:"#26215C",c:"#AFA9EC"},{bg:"#501313",c:"#F09595"},{bg:"#085041",c:"#5DCAA5"},
+  {bg:"#1a3a1a",c:"#97C459"},{bg:"#2a1a00",c:"#EF9F27"}];
+
+const FEED=[
+  {n:"Marcus T.",a:1,s:"2h ago · Cog Hill",pills:[{t:"+8% GIR",bg:"#27500A",c:"#C0DD97"},{t:"-3 putts",bg:"#27500A",c:"#C0DD97"},{t:"Driver↓",bg:"#501313",c:"#F09595"}],f:"Gained 0.4 strokes on Marcus",fc:"#888780"},
+  {n:"Sarah R.",a:2,s:"Yesterday · Butler National",pills:[{t:"Hdcp -2.1",bg:"#27500A",c:"#C0DD97"},{t:"14 rounds",bg:"#252523",c:"#888780"}],f:"Leading the Oct challenge",fc:"#97C459"},
+  {n:"Dan K.",a:3,s:"2 days ago · Medinah",pills:[{t:"+1.3 hdcp",bg:"#501313",c:"#F09595"},{t:"5 rounds",bg:"#252523",c:"#888780"}],f:"Gained 2.4 strokes on Dan since Aug",fc:"#888780"},
+  {n:"Jake B.",a:4,s:"3 days ago · Olympia Fields",pills:[{t:"-0.8 hdcp",bg:"#27500A",c:"#C0DD97"},{t:"8 rounds",bg:"#252523",c:"#888780"}],f:"Closing the gap — watch out",fc:"#EF9F27"}
+];
+
+const NET=[
+  {n:"Marcus T.",a:1,r:"VP of Sales · SaaS · Chicago",av:"Sat AM",ac:"#97C459",h:"11.4",rd:18,mu:2,mb:"#27500A",mc:"#C0DD97",l:"Cog Hill · 3 days ago",bb:"#27500A",bc:"#C0DD97"},
+  {n:"Jamie R.",a:2,r:"Director BD · Fintech · Evanston",av:"Sun AM",ac:"#EF9F27",h:"14.1",rd:12,mu:1,mb:"#252523",mc:"#888780",l:"Medinah · last week",bb:"#252523",bc:"#F1EFE8"},
+  {n:"Kevin L.",a:3,r:"Partner · PE · Oak Park",av:"Flexible",ac:"#888780",h:"7.2",rd:30,mu:3,mb:"#042C53",mc:"#85B7EB",l:"Butler Natl · 5 days ago",bb:"#042C53",bc:"#85B7EB"},
+  {n:"Dana M.",a:5,r:"CFO · Healthcare · Naperville",av:"Sat AM",ac:"#97C459",h:"18.0",rd:8,mu:1,mb:"#252523",mc:"#888780",l:"New to area",bb:"#27500A",bc:"#C0DD97"}
+];
+
+const HOLES=[
+  {p:4,y:387,d:"Dogleg right",m:"Driver → trouble 3 rounds straight. 3W gave you fairway twice.",has:true,pr:[{d:"Aug 12 · Driver",r:"Rough · bogey",g:false},{d:"Aug 28 · Driver",r:"OB · double",g:false},{d:"Sep 14 · 3W",r:"Fairway · par",g:true},{d:"Oct 2 · 3W",r:"Fairway · birdie",g:true}]},
+  {p:3,y:185,d:"Slight uphill",m:"8-iron runs through back. 9-iron is your number.",has:true,pr:[{d:"Sep 14 · 8i",r:"Over green",g:false},{d:"Oct 2 · 9i",r:"Pin high · par",g:true}]},
+  {p:5,y:520,d:"Straight",m:"No data yet for this hole.",has:false,pr:[]},
+  {p:4,y:412,d:"Dogleg left",m:"Lay up to 100 yards — your strongest distance.",has:true,pr:[{d:"Aug 12 · Driver",r:"Fairway",g:true},{d:"Sep 14 · 3W lay",r:"Wedge · birdie",g:true}]},
+  {p:4,y:356,d:"Straight",m:"Short iron from tee leaves perfect wedge. Don't try to drive it.",has:true,pr:[{d:"Aug 28 · Driver",r:"Bunker · bogey",g:false},{d:"Oct 2 · 7i tee",r:"Wedge in · par",g:true}]},
+  {p:3,y:162,d:"No wind shelter",m:"Club up one — exposed to wind every round.",has:true,pr:[{d:"Aug 12 · 8i",r:"Short · bogey",g:false},{d:"Sep 14 · 7i",r:"On green · par",g:true}]},
+  {p:4,y:387,d:"Dogleg right",m:"Driver → trouble 3 rounds straight. 3W gave you fairway twice.",has:true,pr:[{d:"Aug 12 · Driver",r:"Rough · bogey",g:false},{d:"Aug 28 · Driver",r:"OB · double",g:false},{d:"Sep 14 · 3W",r:"Fairway · par",g:true},{d:"Oct 2 · 3W",r:"Fairway · birdie",g:true}]},
+  {p:5,y:498,d:"Slight left",m:"Two good irons set up a wedge. Ego driver costs you.",has:true,pr:[{d:"Sep 14 · Driver",r:"OB · double",g:false},{d:"Oct 2 · 3W layup",r:"Wedge · birdie",g:true}]},
+  {p:4,y:445,d:"Long straight",m:"Only hole where driver is right. Fairway wood leaves too much.",has:true,pr:[{d:"Aug 12 · 3W",r:"220 left · bogey",g:false},{d:"Sep 14 · Driver",r:"Fairway · par",g:true}]}
+];
+
+const CHAL=[
+  {title:"Most improved handicap",sub:"12 friends · 11 days left",rank:2,of:12,pct:72,bg:"#27500A",tc:"#C0DD97",sc:"#5DCAA5",pc:"#97C459",pb:"#173404",you:"-1.8 this month",lead:"Leader: -2.1"},
+  {title:"Fewest 3-putts — 5 rounds",sub:"8 players · 3 days left",rank:1,of:8,pct:90,bg:"#412402",tc:"#FAC775",sc:"#BA7517",pc:"#EF9F27",pb:"#2a1700",you:"Avg: 1.4/round",lead:"2nd: 1.7"},
+  {title:"GIR from 150+ yards",sub:"6 players · 19 days left",rank:4,of:6,pct:38,bg:"#252523",tc:"#F1EFE8",sc:"#888780",pc:"#888780",pb:"#1C1C1A",you:"Your rate: 28%",lead:"Leader: 41%"}
+];
+
+// ── STATE ────────────────────────────────────────────────────────────
+let state={
+  screen:"feed", prevScreen:"feed",
+  chalTab:0, feedTab:0, profTab:0,
+  hole:6, holeLog:{},
+  tournament:null, players:[], locked:false, scoring:false, uid:1,
+  regTier:null, currentPid:null, pickDraft:{A:null,B:null,C:null,D:null},
+  tName:"", tLock:"8:00 AM", tStake:"Loser buys the round",
+  ncStep:0, ncType:"group", ncMetric:"hdcp", ncDur:"30 days",
+  ncStake:"Loser buys the round", ncFriends:[0,1],
+  ncDurType:"preset", ncCustomMetric:"", ncCustomDur:"",
+  skinsHoles:18, skinsCarry:true,
+  notePlayer:null, netFilter:"This week"
+};
+
+// ── HELPERS ──────────────────────────────────────────────────────────
+const ini=n=>n.trim().split(" ").filter(Boolean).map(w=>w[0].toUpperCase()).join("").slice(0,2)||"?";
+const av=(n,idx,sz)=>{const a=AVC[idx%AVC.length];return `<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${a.bg};display:flex;align-items:center;justify-content:center;font-size:${sz*.36}px;font-weight:500;color:${a.c};flex-shrink:0;">${ini(n)}</div>`;};
+const tb=(t)=>{const d=TIERS[t];return `<span class="pill" style="background:${d.bg};color:${d.c};border:.5px solid ${d.br};">${t}</span>`;};
+const navIcons=(active)=>{
+  const ic=(id,path)=>`<div class="ni${active===id?' on':''}" onclick="go('${id}')"><svg width="22" height="22" viewBox="0 0 22 22" fill="none">${path}</svg><span>${id.charAt(0).toUpperCase()+id.slice(1)}</span></div>`;
+  return `
+    ${ic('feed','<path d="M3 11L11 3l8 8" stroke="'+(active==='feed'?G.g:G.m)+'" stroke-width="1.5" stroke-linecap="round"/><path d="M5 9v8a1 1 0 001 1h4v-4h2v4h4a1 1 0 001-1V9" stroke="'+(active==='feed'?G.g:G.m)+'" stroke-width="1.5" stroke-linecap="round"/>')}
+    ${ic('challenges','<circle cx="11" cy="11" r="8" stroke="'+(active==='challenges'?G.g:G.m)+'" stroke-width="1.5"/><path d="M11 7v4l3 3" stroke="'+(active==='challenges'?G.g:G.m)+'" stroke-width="1.5" stroke-linecap="round"/>')}
+    ${ic('round','<path d="M4 6h14M4 11h14M4 16h14" stroke="'+(active==='round'?G.g:G.m)+'" stroke-width="1.5" stroke-linecap="round"/>')}
+    ${ic('network','<circle cx="8" cy="8" r="3.5" stroke="'+(active==='network'?G.g:G.m)+'" stroke-width="1.5"/><circle cx="16" cy="7" r="2.5" stroke="'+(active==='network'?G.g:G.m)+'" stroke-width="1.5"/><path d="M2 18c0-3 2.7-5 6-5s6 2 6 5" stroke="'+(active==='network'?G.g:G.m)+'" stroke-width="1.5" stroke-linecap="round"/><path d="M16 12c2 0 4 1.3 4 3.5" stroke="'+(active==='network'?G.g:G.m)+'" stroke-width="1.5" stroke-linecap="round"/>')}
+    ${ic('profile','<circle cx="11" cy="8" r="3.5" stroke="'+(active==='profile'?G.g:G.m)+'" stroke-width="1.5"/><path d="M4 19c0-3.9 3.1-7 7-7h.5c3.9 0 7 3.1 7 7" stroke="'+(active==='profile'?G.g:G.m)+'" stroke-width="1.5" stroke-linecap="round"/>')}
+  `;
+};
+const nav=(active)=>`<div class="nav">${navIcons(active)}</div>`;
+const sb=()=>`<div class="sb"><span>9:41</span><span>87%</span></div>`;
+const topbar=(title,back,right='')=>`<div class="topbar"><div class="back" onclick="${back||'back()'}">${back?'← Back':''}</div><div class="title">${title}</div><div class="right">${right}</div></div>`;
+
+function calcLB(){
+  return state.players
+    .filter(p=>Object.values(p.picks).filter(Boolean).length===4)
+    .map(p=>({...p,total:Object.values(p.picks).filter(Boolean).reduce((s,pk)=>{
+      const live=state.players.find(r=>r.id===pk.id);return s+(live?.score??0);},0)}))
+    .sort((a,b)=>a.total-b.total);
+}
+
+// ── NAVIGATION ───────────────────────────────────────────────────────
+function go(screen){
+  state.prevScreen=state.screen;
+  state.screen=screen;
+  render();
+}
+function back(){go(state.prevScreen);}
+
+// ── MAIN RENDER ──────────────────────────────────────────────────────
+function render(){
+  const app=document.getElementById('app');
+  const s=state.screen;
+  if(s==='feed') app.innerHTML=renderFeed();
+  else if(s==='challenges') app.innerHTML=renderChallenges();
+  else if(s==='round') app.innerHTML=renderRound();
+  else if(s==='network') app.innerHTML=renderNetwork();
+  else if(s==='profile') app.innerHTML=renderProfile();
+  else if(s==='new-challenge') app.innerHTML=renderNewChallenge();
+  else if(s==='host-setup') app.innerHTML=renderHostSetup();
+  else if(s==='host-lobby') app.innerHTML=renderHostLobby();
+  else if(s==='add-player') app.innerHTML=renderAddPlayer();
+  else if(s==='player-pick') app.innerHTML=renderPlayerPick();
+  else if(s==='host-scoring') app.innerHTML=renderHostScoring();
+  else if(s==='note') app.innerHTML=renderNote();
+}
+
+// ── FEED ─────────────────────────────────────────────────────────────
+function renderFeed(){
+  const tabs=['Progress','Challenges','Network'];
+  let items='';
+  FEED.forEach(f=>{
+    items+=`<div style="padding:12px 16px;border-bottom:.5px solid ${G.b};">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">${av(f.n,f.a,32)}<div><div style="font-size:13px;font-weight:500;color:${G.t};">${f.n}</div><div style="font-size:11px;color:${G.m};">${f.s}</div></div></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">${f.pills.map(p=>`<span class="pill" style="background:${p.bg};color:${p.c};">${p.t}</span>`).join('')}</div>
+      <div style="font-size:12px;color:${f.fc};">${f.f}</div></div>`;
+  });
+  return `<div class="screen active" style="height:100vh;">
+    ${sb()}
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 16px 8px;">
+      <div style="font-size:20px;font-weight:500;color:${G.t};">Feed</div>
+      <div style="width:30px;height:30px;border-radius:50%;background:${G.gB};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:${G.gT};">AJ</div>
+    </div>
+    <div class="tabs">${tabs.map((t,i)=>`<div class="tab${i===state.feedTab?' on':''}" onclick="state.feedTab=${i};render();">${t}</div>`).join('')}</div>
+    <div class="scroll">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:12px 16px;">
+        <div style="background:${G.gB};border-radius:10px;padding:10px 10px 8px;"><div style="font-size:20px;font-weight:500;color:${G.g};">-1.8</div><div style="font-size:10px;color:${G.m};margin-top:2px;">Handicap</div></div>
+        <div style="background:${G.s2};border-radius:10px;padding:10px 10px 8px;"><div style="font-size:20px;font-weight:500;color:${G.t};">+12%</div><div style="font-size:10px;color:${G.m};margin-top:2px;">Fairways</div></div>
+        <div style="background:${G.aB};border-radius:10px;padding:10px 10px 8px;"><div style="font-size:20px;font-weight:500;color:${G.a};">-40%</div><div style="font-size:10px;color:${G.m};margin-top:2px;">3-putts</div></div>
+      </div>
+      <div onclick="go('challenges')" style="margin:0 16px 8px;border-radius:10px;padding:10px 12px;background:${G.gB};display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+        <div><div style="font-size:12px;font-weight:500;color:${G.gT};">Most improved handicap</div><div style="font-size:11px;color:${G.gD};margin-top:1px;">Oct challenge · 11 days left</div></div>
+        <div style="text-align:right;"><div style="font-size:22px;font-weight:500;color:${G.g};">#2</div><div style="font-size:10px;color:${G.gD};">of 12</div></div>
+      </div>
+      <div onclick="state.chalTab=2;go('challenges')" style="margin:0 16px 12px;border-radius:12px;padding:14px;background:${G.s};border:.5px solid ${G.b};cursor:pointer;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:32px;height:32px;border-radius:8px;background:${G.aB};display:flex;align-items:center;justify-content:center;font-size:16px;">🏆</div>
+            <div><div style="font-size:13px;font-weight:500;color:${G.t};">Pick-em tournament</div><div style="font-size:11px;color:${G.m};margin-top:1px;">Pick A·B·C·D — best score wins</div></div>
+          </div>
+          <span style="color:${G.m};">›</span>
+        </div>
+        <div style="display:flex;gap:6px;">
+          ${Object.entries(TIERS).map(([k,t])=>`<div style="flex:1;border-radius:8px;padding:7px 4px;background:${t.bg};border:.5px solid ${t.br};text-align:center;"><div style="font-size:15px;font-weight:600;color:${t.c};">${k}</div><div style="font-size:9px;color:${t.c};opacity:.8;margin-top:1px;">${t.d.split(' ').slice(0,2).join(' ')}</div></div>`).join('')}
+        </div>
+        <div style="margin-top:10px;border-top:.5px solid ${G.b};padding-top:8px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:11px;color:${G.m};">${state.tournament?state.tournament.name+' · '+state.players.length+' players':'No active tournament'}</span>
+          <span class="pill" style="background:${state.tournament?(state.scoring?G.rB:G.gB):G.s2};color:${state.tournament?(state.scoring?G.r:G.g):G.m};">${state.tournament?(state.scoring?'Live':'Lobby'):'Start one →'}</span>
+        </div>
+      </div>
+      ${items}
+      <div style="height:16px;"></div>
+    </div>
+    ${nav('feed')}
+  </div>`;
+}
+
+// ── CHALLENGES ───────────────────────────────────────────────────────
+function renderChallenges(){
+  const ct=state.chalTab;
+  let body='';
+  if(ct===0){
+    body+=`<div class="sh">Active</div>
+      <div style="margin:0 16px 8px;border-radius:12px;padding:12px 14px;background:#412402;border:.5px solid #854F0B;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;"><div><div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;"><span class="pill" style="background:#854F0B;color:#FAC775;">💀 Skins</span><span style="font-size:11px;color:#BA7517;">18 holes · carry</span></div><div style="font-size:14px;font-weight:500;color:#FAC775;">Saturday at Cog Hill</div><div style="font-size:11px;color:#BA7517;margin-top:2px;">Marcus · Sarah · Dan · You · 3 days away</div></div><div style="text-align:right;"><div style="font-size:20px;font-weight:500;color:${G.a};">4</div><div style="font-size:10px;color:#BA7517;">players</div></div></div>
+        <div style="border-top:.5px solid #854F0B;padding-top:8px;font-size:11px;color:#BA7517;line-height:1.6;">Each hole = 1 skin. Ties carry. Most skins wins — loser buys the round.</div>
+      </div>`;
+    CHAL.forEach(c=>{
+      body+=`<div style="margin:0 16px 8px;border-radius:12px;padding:12px 14px;background:${c.bg};">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;"><div><div style="font-size:14px;font-weight:500;color:${c.tc};">${c.title}</div><div style="font-size:11px;color:${c.sc};margin-top:2px;">${c.sub}</div></div><div style="text-align:right;"><div style="font-size:20px;font-weight:500;color:${c.pc};">#${c.rank}</div><div style="font-size:10px;color:${c.sc};">of ${c.of}</div></div></div>
+        <div style="height:5px;border-radius:3px;overflow:hidden;background:${c.pb};margin-bottom:6px;"><div style="height:100%;width:${c.pct}%;background:${c.pc};border-radius:3px;"></div></div>
+        <div style="display:flex;justify-content:space-between;"><span style="font-size:11px;color:${c.sc};">${c.you}</span><span style="font-size:11px;color:${c.sc};">${c.lead}</span></div>
+      </div>`;
+    });
+    body+=`<div style="padding:0 16px 20px;margin-top:4px;"><div class="btn bg" onclick="go('new-challenge')">+ Create new challenge</div></div>`;
+  }
+  else if(ct===1){
+    body+=`<div class="card" style="margin-top:12px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">${av('Adrian J',0,28)}<div style="flex:1;font-size:13px;font-weight:500;color:${G.t};">You</div><div style="font-size:13px;font-weight:500;color:${G.g};">-1.8 hdcp</div></div>
+      <div style="text-align:center;font-size:10px;color:${G.m};padding:4px 0;">vs</div>
+      <div style="display:flex;align-items:center;gap:8px;">${av('Marcus T',1,28)}<div style="flex:1;font-size:13px;font-weight:500;color:${G.t};">Marcus T.</div><div style="font-size:13px;font-weight:500;color:${G.m};">-1.1 hdcp</div></div>
+      <div style="margin-top:8px;font-size:11px;color:${G.gD};">You're winning · 14 days left · Loser buys the round</div>
+    </div>
+    <div style="padding:0 16px;"><div class="btn bg" onclick="go('new-challenge')">+ Challenge someone</div></div>`;
+  }
+  else{
+    body+=renderTournamentTab();
+  }
+  return `<div class="screen active">
+    ${sb()}
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 16px 8px;">
+      <div style="font-size:20px;font-weight:500;color:${G.t};">Challenges</div>
+      <div onclick="go('new-challenge')" style="width:30px;height:30px;border-radius:50%;background:${G.gB};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;color:${G.g};line-height:1;">+</div>
+    </div>
+    <div class="tabs">${['My challenges','Duels','Tournament'].map((t,i)=>`<div class="tab${ct===i?' on':''}" onclick="state.chalTab=${i};render();">${t}</div>`).join('')}</div>
+    <div class="scroll">${body}<div style="height:16px;"></div></div>
+    ${nav('challenges')}
+  </div>`;
+}
+
+function renderTournamentTab(){
+  if(!state.tournament){
+    return `<div style="padding:16px;display:flex;flex-direction:column;gap:10px;">
+      <div style="border-radius:12px;padding:16px;background:${G.s};border:.5px solid ${G.b};">
+        <div style="font-size:14px;font-weight:500;color:${G.t};margin-bottom:4px;">Pick-em tournament</div>
+        <div style="font-size:12px;color:${G.m};line-height:1.7;margin-bottom:12px;">Create a tournament and share the code. Each player enters their own name, picks their skill tier (A/B/C/D), then builds a lineup of one player from each tier. Best combined score wins.</div>
+        <div class="btn bg" onclick="go('host-setup')">Create tournament →</div>
+      </div>
+      <div style="display:flex;gap:8px;">${Object.entries(TIERS).map(([k,t])=>`<div style="flex:1;border-radius:10px;padding:10px 8px;background:${t.bg};border:.5px solid ${t.br};text-align:center;"><div style="font-size:18px;font-weight:600;color:${t.c};">${k}</div><div style="font-size:9px;color:${t.c};opacity:.8;margin-top:2px;">${t.d.split(' ').slice(0,2).join(' ')}</div></div>`).join('')}</div>
+    </div>`;
+  }
+  const lb=calcLB();
+  return `
+    <div style="margin:12px 16px;border-radius:12px;padding:14px;background:${state.scoring?G.rB:G.gB};">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div style="font-size:15px;font-weight:500;color:${state.scoring?G.r:G.gT};">${state.tournament.name}</div>
+        <span class="pill" style="background:${state.scoring?'#300':'#173404'};color:${state.scoring?G.r:G.g};">${state.scoring?'Live':'Lobby'}</span>
+      </div>
+      <div style="font-size:11px;color:${state.scoring?G.r:G.gD};">${state.players.length} players · Lock: ${state.tournament.lock} · ${state.tournament.stake}</div>
+    </div>
+    ${!state.scoring?`<div style="padding:0 16px;display:flex;flex-direction:column;gap:8px;margin-bottom:8px;">
+      <div class="btn bb" onclick="go('add-player')">+ Register as a player</div>
+      <div class="btn bx" onclick="go('host-lobby')">Host lobby &amp; lock picks</div>
+    </div>`:''}
+    ${state.scoring?`<div style="padding:0 16px 8px;"><div class="btn br" onclick="go('host-scoring')">Enter scores →</div></div>`:''}
+    ${state.players.length>0?`<div class="sh">Field (${state.players.length})</div>
+      ${state.players.map(p=>`<div onclick="${!state.locked?`openPick(${p.id})`:'void 0'}" style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:.5px solid ${G.b};cursor:${state.locked?'default':'pointer'};">${av(p.name,p.avIdx,34)}<div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${G.t};">${p.name}</div><div style="font-size:11px;color:${Object.values(p.picks).filter(Boolean).length===4?G.g:G.m};margin-top:1px;">${Object.values(p.picks).filter(Boolean).length===4?'Lineup set ✓':state.locked?'No lineup':'Tap to build lineup'}</div></div>${tb(p.tier)}</div>`).join('')}`:''}
+    ${lb.length>0?`<div class="sh">${state.scoring?'Live leaderboard':'Projected standings'}</div>
+      ${lb.map((e,i)=>{const iF=i===0,iL=i===lb.length-1&&lb.length>1;return `<div style="margin:0 16px 6px;border-radius:10px;padding:11px 14px;background:${iF?G.rB:G.s};border:.5px solid ${iF?G.rB:G.b};display:flex;align-items:center;gap:8px;"><div style="font-size:14px;font-weight:500;color:${iF?G.r:G.m};width:24px;">#${i+1}</div>${av(e.name,e.avIdx,28)}<div style="flex:1;margin-left:4px;font-size:13px;font-weight:500;color:${iF?G.r:G.t};">${e.name}</div><div style="font-size:14px;font-weight:500;color:${iF?G.r:iL?G.a:G.g};">${e.total>0?'+':''}${e.total}</div></div>`;}).join('')}
+      ${lb.length>1?`<div style="margin:0 16px 8px;border-radius:10px;padding:10px 14px;background:${G.aB};"><div style="font-size:12px;color:${G.aT};">⚠ ${lb[lb.length-1].name} on the hook — ${state.tournament.stake}</div></div>`:''}`:''
+    }`;
+}
+
+// ── ROUND ─────────────────────────────────────────────────────────────
+function renderRound(){
+  const h=HOLES[state.hole];
+  let strip='';
+  HOLES.forEach((_,i)=>{
+    const r=state.holeLog[i];
+    const bg=i===state.hole?G.g:r==='good'?G.gB:r==='okay'?G.aB:r==='disaster'?G.rB:G.s2;
+    const c=i===state.hole?'#173404':r==='good'?G.gT:r==='okay'?G.aT:r==='disaster'?G.r:G.m;
+    strip+=`<div onclick="state.hole=${i};render()" style="min-width:36px;height:36px;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:${c};flex-shrink:0;cursor:pointer;">${i+1}</div>`;
+  });
+  let pattern='';
+  if(h.pr.length>0){
+    pattern=`<div class="sh">Your pattern — hole ${state.hole+1}</div><div style="margin:0 16px 12px;border-radius:10px;overflow:hidden;border:.5px solid ${G.b};">
+      ${h.pr.map((r,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:${i<h.pr.length-1?`.5px solid ${G.s2}`:'none'};background:${G.s};"><span style="font-size:12px;color:${G.m};">${r.d}</span><span class="pill" style="background:${r.g?G.gB:G.rB};color:${r.g?G.gT:G.r};">${r.r}</span></div>`).join('')}
+    </div>`;
+  }
+  return `<div class="screen active">
+    ${sb()}
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 16px 10px;border-bottom:.5px solid ${G.b};flex-shrink:0;">
+      <div><div style="font-size:11px;color:${G.m};">Cog Hill — Round in progress</div><div style="font-size:20px;font-weight:500;color:${G.t};margin-top:2px;">Hole ${state.hole+1}</div></div>
+      <div style="text-align:right;"><div style="font-size:11px;color:${G.m};">Par ${h.p} · ${h.y} yds</div><div style="font-size:12px;color:${G.a};margin-top:2px;">${h.d}</div></div>
+    </div>
+    <div class="scroll">
+      <div style="display:flex;gap:6px;padding:10px 16px;overflow-x:auto;">${strip}</div>
+      <div style="margin:0 16px 12px;border-radius:0 12px 12px 0;padding:14px;background:${h.has?G.gB:G.s2};border-left:3px solid ${h.has?G.g:G.b};">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:${h.has?G.gD:G.m};margin-bottom:4px;">Caddie memory</div>
+        <div style="font-size:14px;font-weight:500;color:${h.has?G.gT:G.m};line-height:1.5;">"${h.m}"</div>
+        ${h.has?`<div style="font-size:11px;color:${G.gD};margin-top:6px;">Based on your last rounds at Cog Hill</div>`:''}
+      </div>
+      ${pattern}
+      <div class="sh">Log this hole</div>
+      <div style="display:flex;gap:8px;margin:0 16px 20px;">
+        <div onclick="state.holeLog[${state.hole}]='good';state.hole=Math.min(8,state.hole+1);render()" style="flex:1;text-align:center;padding:12px 4px;border-radius:12px;background:${G.gB};font-size:13px;font-weight:500;color:${G.gT};cursor:pointer;">Good</div>
+        <div onclick="state.holeLog[${state.hole}]='okay';state.hole=Math.min(8,state.hole+1);render()" style="flex:1;text-align:center;padding:12px 4px;border-radius:12px;background:${G.aB};font-size:13px;font-weight:500;color:${G.aT};cursor:pointer;">Okay</div>
+        <div onclick="state.holeLog[${state.hole}]='disaster';state.hole=Math.min(8,state.hole+1);render()" style="flex:1;text-align:center;padding:12px 4px;border-radius:12px;background:${G.rB};font-size:13px;font-weight:500;color:${G.r};cursor:pointer;">Disaster</div>
+      </div>
+    </div>
+    ${nav('round')}
+  </div>`;
+}
+
+// ── NETWORK ──────────────────────────────────────────────────────────
+function renderNetwork(){
+  const filters=["This week","SaaS","Finance","Real estate","10–18 hdcp"];
+  let cards='';
+  NET.forEach((p,i)=>{
+    cards+=`<div style="margin:0 16px 8px;border-radius:12px;padding:12px 14px;background:${G.s};border:.5px solid ${G.b};">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">${av(p.n,p.a,40)}<div style="flex:1;"><div style="font-size:14px;font-weight:500;color:${G.t};">${p.n}</div><div style="font-size:11px;color:${G.m};margin-top:1px;">${p.r}</div></div><div style="text-align:right;"><div style="font-size:13px;font-weight:500;color:${p.ac};">${p.av}</div><div style="font-size:10px;color:${G.m};">available</div></div></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"><span class="pill" style="background:${G.s2};color:${G.t};">Hdcp ${p.h}</span><span class="pill" style="background:${G.s2};color:${G.t};">${p.rd} rounds/yr</span><span class="pill" style="background:${p.mb};color:${p.mc};">${p.mu} mutual</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:11px;color:${G.m};">${p.l}</span>
+      <div style="display:flex;gap:6px;"><div onclick="openNote(${i})" style="font-size:11px;font-weight:500;padding:6px 10px;border-radius:20px;background:${G.s2};color:${G.m};cursor:pointer;">Note</div><div style="font-size:12px;font-weight:500;padding:6px 14px;border-radius:20px;background:${p.bb};color:${p.bc};cursor:pointer;">Request round</div></div></div>
+    </div>`;
+  });
+  return `<div class="screen active">
+    ${sb()}
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 16px 8px;">
+      <div style="font-size:20px;font-weight:500;color:${G.t};">Network</div>
+    </div>
+    <div class="tabs"><div class="tab on">Discover</div><div class="tab">Connections</div><div class="tab">Played with</div></div>
+    <div class="scroll">
+      <div style="display:flex;gap:6px;padding:10px 16px;overflow-x:auto;">
+        ${filters.map(f=>`<div onclick="state.netFilter='${f}';render()" style="white-space:nowrap;font-size:11px;font-weight:500;padding:5px 12px;border-radius:20px;flex-shrink:0;cursor:pointer;background:${state.netFilter===f?G.g:G.s2};color:${state.netFilter===f?'#173404':G.m};border:${state.netFilter===f?'none':`.5px solid ${G.b}`};">${f}</div>`).join('')}
+      </div>
+      <div style="margin:0 16px 10px;border-radius:10px;padding:9px 12px;background:${G.s};display:flex;align-items:center;gap:8px;"><div style="width:8px;height:8px;border-radius:50%;background:${G.g};flex-shrink:0;"></div><div style="font-size:12px;color:${G.t};">6 players in your industry playing within 20 miles this week</div></div>
+      <div class="sh">Best matches</div>
+      ${cards}
+      <div style="height:16px;"></div>
+    </div>
+    ${nav('network')}
+  </div>`;
+}
+
+function openNote(i){state.notePlayer=NET[i];go('note');}
+
+// ── NOTE ─────────────────────────────────────────────────────────────
+function renderNote(){
+  const p=state.notePlayer||NET[0];
+  return `<div class="screen active">
+    ${sb()}
+    ${topbar('How was the round?','back()','<span onclick="back()" style="color:'+G.m+';">Skip</span>')}
+    <div class="scroll" style="padding:12px 16px;display:flex;flex-direction:column;gap:12px;">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:${G.s};border:.5px solid ${G.b};">${av(p.n,p.a,44)}<div><div style="font-size:15px;font-weight:500;color:${G.t};">${p.n}</div><div style="font-size:12px;color:${G.m};margin-top:2px;">${p.r}</div></div></div>
+      <div class="sh" style="padding:0 0 6px;">Quick tags</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">${["Good conversation","Would play again","Business potential","Solid player","Great contact","Slow pace"].map((tag,i)=>`<div style="padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;background:${i<2?G.gB:G.s};color:${i<2?G.gT:G.m};border:.5px solid ${i<2?'#639922':G.b};cursor:pointer;">${tag}</div>`).join('')}</div>
+      <div class="sh" style="padding:0 0 6px;">Add a note</div>
+      <textarea id="note-txt" placeholder="e.g. Works in SaaS, mentioned looking at new tools. Follow up in a few weeks." rows="3" style="width:100%;border-radius:10px;padding:11px 14px;font-size:13px;background:${G.s};border:.5px solid ${G.b};color:${G.t};font-family:inherit;outline:none;resize:none;"></textarea>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:10px;background:${G.s};border:.5px solid ${G.b};">
+        <div><div style="font-size:13px;color:${G.t};">Follow-up reminder</div><div style="font-size:11px;color:${G.m};margin-top:2px;">Ping you in 2 weeks</div></div>
+        <div style="width:40px;height:24px;border-radius:12px;background:#639922;display:flex;align-items:center;justify-content:flex-end;padding:2px 3px;"><div style="width:20px;height:20px;border-radius:50%;background:${G.t};"></div></div>
+      </div>
+      <div class="btn bg" onclick="back()">Save note</div>
+    </div>
+    ${nav('network')}
+  </div>`;
+}
+
+// ── PROFILE ──────────────────────────────────────────────────────────
+function renderProfile(){
+  const pt=state.profTab;
+  const progRows=[{l:"Fairway accuracy",v:"+12%",pos:true},{l:"3-putt rate",v:"-40%",pos:true},{l:"GIR from 150+",v:"+8%",pos:true},{l:"Scoring avg",v:"-1.4",pos:true},{l:"Handicap trend",v:"-1.8",pos:true}];
+  const mem=[{m:"Hole 7: 3W over driver — confirmed 3 rounds in a row",g:true},{m:"Inside 100 yards: your strongest area this month",g:true},{m:"Hole 14: driver into wind = trouble every time",g:false},{m:"8-iron from 155: runs through the back. 9-iron is your number",g:true},{m:"Par 3s: club up in wind — you've been short 4 times",g:false}];
+  let tabBody='';
+  if(pt===0) tabBody=`<div class="sh">Patterns learned</div>${mem.map(m=>`<div style="margin:0 16px 6px;border-radius:10px;padding:10px 14px;background:${m.g?G.s:G.aB};"><div style="font-size:13px;color:${m.g?G.t:G.aT};line-height:1.5;">${m.m}</div></div>`).join('')}`;
+  else if(pt===1) tabBody=`<div class="sh">Progress this month</div>${progRows.map(r=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:.5px solid ${G.b};"><span style="font-size:13px;color:${G.t};">${r.l}</span><span class="pill" style="background:${r.pos?G.gB:G.rB};color:${r.pos?G.gT:G.r};">${r.v}</span></div>`).join('')}`;
+  else tabBody=`<div class="sh">Played with recently</div>${NET.slice(0,3).map((p,i)=>`<div onclick="openNote(${i})" style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:.5px solid ${G.b};cursor:pointer;">${av(p.n,p.a,34)}<div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${G.t};">${p.n}</div><div style="font-size:11px;color:${G.m};margin-top:1px;">${p.l}</div></div><span style="color:${G.m};">›</span></div>`).join('')}`;
+  return `<div class="screen active">
+    ${sb()}
+    <div class="scroll">
+      <div style="padding:20px 16px 16px;text-align:center;border-bottom:.5px solid ${G.b};">
+        <div style="width:64px;height:64px;border-radius:50%;background:${G.gB};display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:500;color:${G.gT};margin:0 auto;">AJ</div>
+        <div style="font-size:18px;font-weight:500;color:${G.t};margin-top:10px;">Adrian J.</div>
+        <div style="font-size:13px;color:${G.m};margin-top:2px;">VP of Sales · Chicago, IL</div>
+        <div style="display:flex;justify-content:center;gap:6px;margin-top:10px;"><span class="pill" style="background:${G.gB};color:${G.gT};">Hdcp 14.2</span><span class="pill" style="background:${G.s2};color:${G.m};">22 rounds this year</span></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:12px 16px;">
+        ${[{n:"-1.8",l:"Hdcp trend"},{n:"#2",l:"Oct challenge"},{n:"3",l:"Rounds won"}].map(s=>`<div style="background:${G.s};border-radius:10px;padding:10px;text-align:center;"><div style="font-size:20px;font-weight:500;color:${G.g};">${s.n}</div><div style="font-size:10px;color:${G.m};margin-top:2px;">${s.l}</div></div>`).join('')}
+      </div>
+      <div class="tabs">${['Memory','Progress','Network'].map((t,i)=>`<div class="tab${pt===i?' on':''}" onclick="state.profTab=${i};render();">${t}</div>`).join('')}</div>
+      ${tabBody}
+      <div style="height:16px;"></div>
+    </div>
+    ${nav('profile')}
+  </div>`;
+}
+
+// ── NEW CHALLENGE ─────────────────────────────────────────────────────
+const METRICS=[{id:"hdcp",l:"Most improved handicap",ic:"📉"},{id:"putts",l:"Fewest 3-putts",ic:"🏌️"},{id:"gir",l:"GIR from 150+ yards",ic:"🎯"},{id:"fw",l:"Most fairways hit",ic:"✅"},{id:"scoring",l:"Lowest scoring avg",ic:"🔢"}];
+
+function renderNewChallenge(){
+  const step=state.ncStep;
+  let body='',right='';
+  if(step===2) right=`<span onclick="state.ncStep=0;go('challenges')" style="color:${G.g};">Send ✓</span>`;
+  if(step===0){
+    body=`<div style="padding:12px 16px;display:flex;flex-direction:column;gap:12px;">
+      <div style="font-size:11px;color:${G.m};letter-spacing:.04em;">FORMAT</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        ${['group','duel'].map(t=>`<div onclick="state.ncType='${t}';render()" style="border-radius:10px;padding:12px 14px;background:${state.ncType===t?G.gB:G.s};border:.5px solid ${state.ncType===t?'#639922':G.b};cursor:pointer;"><div style="font-size:13px;font-weight:500;color:${state.ncType===t?G.gT:G.t};">${t==='group'?'Group':'Head-to-head'}</div><div style="font-size:11px;color:${G.m};margin-top:2px;">${t==='group'?'3+ players':'1v1 duel'}</div></div>`).join('')}
+      </div>
+      <div style="font-size:11px;color:${G.m};letter-spacing:.04em;">IMPROVEMENT</div>
+      ${METRICS.map(m=>`<div onclick="state.ncMetric='${m.id}';render()" style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;background:${state.ncMetric===m.id?G.gB:G.s};border:.5px solid ${state.ncMetric===m.id?'#639922':G.b};cursor:pointer;"><span style="font-size:18px;">${m.ic}</span><div style="font-size:13px;font-weight:500;color:${state.ncMetric===m.id?G.gT:G.t};">${m.l}</div></div>`).join('')}
+      <div style="font-size:11px;color:${G.m};letter-spacing:.04em;">SKINS</div>
+      <div onclick="state.ncMetric='skins';render()" style="padding:12px 14px;border-radius:10px;background:${state.ncMetric==='skins'?'#412402':G.s};border:.5px solid ${state.ncMetric==='skins'?'#854F0B':G.b};cursor:pointer;">
+        <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:18px;">💀</span><div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${state.ncMetric==='skins'?'#FAC775':G.t};">Skins</div><div style="font-size:11px;color:${G.m};">Win holes outright. Ties carry.</div></div></div>
+        ${state.ncMetric==='skins'?`<div style="border-top:.5px solid #854F0B;padding-top:10px;margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+          <div style="font-size:11px;color:#BA7517;line-height:1.6;">Each hole = 1 skin. Win a hole outright (no ties) to claim it. Most skins wins.</div>
+          <div style="display:flex;gap:8px;">${[9,18].map(h=>`<div onclick="event.stopPropagation();state.skinsHoles=${h};render()" style="flex:1;text-align:center;padding:8px;border-radius:10px;font-size:12px;font-weight:500;background:${state.skinsHoles===h?'#854F0B':G.s2};color:${state.skinsHoles===h?'#FAC775':G.m};cursor:pointer;">${h} holes</div>`).join('')}</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:10px;background:${G.s2};">
+            <div><div style="font-size:12px;font-weight:500;color:#FAC775;">Carry skins</div><div style="font-size:11px;color:${G.m};">Ties carry forward</div></div>
+            <div onclick="event.stopPropagation();state.skinsCarry=!state.skinsCarry;render()" style="width:40px;height:24px;border-radius:12px;background:${state.skinsCarry?'#854F0B':G.b};display:flex;align-items:center;padding:2px 3px;justify-content:${state.skinsCarry?'flex-end':'flex-start'};cursor:pointer;"><div style="width:20px;height:20px;border-radius:50%;background:${G.t};"></div></div>
+          </div>
+        </div>`:''}
+      </div>
+      <div style="font-size:11px;color:${G.m};letter-spacing:.04em;">CUSTOM</div>
+      <div onclick="state.ncMetric='custom';render()" style="padding:12px 14px;border-radius:10px;background:${state.ncMetric==='custom'?G.blB:G.s};border:.5px solid ${state.ncMetric==='custom'?'#185FA5':G.b};cursor:pointer;">
+        <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:18px;">✏️</span><div style="font-size:13px;font-weight:500;color:${state.ncMetric==='custom'?G.bl:G.t};">Custom challenge</div></div>
+        ${state.ncMetric==='custom'?`<div style="margin-top:10px;" onclick="event.stopPropagation()"><textarea id="cm-inp" placeholder='"Most birdies in a single round"' rows="2" style="width:100%;border-radius:10px;padding:10px;font-size:13px;background:${G.s2};border:.5px solid ${G.b};color:${G.t};font-family:inherit;outline:none;resize:none;">${state.ncCustomMetric}</textarea></div>`:''}
+      </div>
+      <div style="font-size:11px;color:${G.m};letter-spacing:.04em;">DURATION</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        ${[{id:'single',l:'Single round',s:'One day'},{id:'preset',l:'Multi-round',s:'Set timeframe'},{id:'custom',l:'Custom',s:'Pick end date'}].map(d=>`<div onclick="state.ncDurType='${d.id}';render()" style="border-radius:10px;padding:10px 8px;text-align:center;background:${state.ncDurType===d.id?G.gB:G.s};border:.5px solid ${state.ncDurType===d.id?'#639922':G.b};cursor:pointer;"><div style="font-size:12px;font-weight:500;color:${state.ncDurType===d.id?G.gT:G.t};">${d.l}</div><div style="font-size:10px;color:${G.m};margin-top:2px;">${d.s}</div></div>`).join('')}
+      </div>
+      ${state.ncDurType==='preset'?`<div style="display:flex;gap:8px;">${['1 week','2 weeks','30 days','60 days'].map(d=>`<div onclick="state.ncDur='${d}';render()" style="flex:1;text-align:center;padding:9px 4px;border-radius:10px;font-size:11px;font-weight:500;background:${state.ncDur===d?G.gB:G.s};color:${state.ncDur===d?G.gT:G.m};border:.5px solid ${state.ncDur===d?'#639922':G.b};cursor:pointer;">${d}</div>`).join('')}</div>`:''}
+      ${state.ncDurType==='custom'?`<input id="cd-inp" class="inp" placeholder="e.g. December 31, 2025" value="${state.ncCustomDur}"/>`:''}
+      <div class="btn bg" onclick="if(document.getElementById('cm-inp'))state.ncCustomMetric=document.getElementById('cm-inp').value;if(document.getElementById('cd-inp'))state.ncCustomDur=document.getElementById('cd-inp').value;state.ncStep=1;render();">Pick players →</div>
+    </div>`;
+  }
+  else if(step===1){
+    body=`<div style="padding:12px 16px;display:flex;flex-direction:column;gap:12px;">
+      <div class="sh" style="padding:0 0 8px;">Invite friends</div>
+      ${FEED.map((f,i)=>`<div onclick="toggleFriend(${i})" style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;background:${state.ncFriends.includes(i)?G.gB:G.s};border:.5px solid ${state.ncFriends.includes(i)?'#639922':G.b};cursor:pointer;">${av(f.n,f.a,34)}<div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${state.ncFriends.includes(i)?G.gT:G.t};">${f.n}</div><div style="font-size:11px;color:${G.m};">Hdcp 11.${i+1}</div></div><div style="width:22px;height:22px;border-radius:50%;background:${state.ncFriends.includes(i)?G.g:G.s2};display:flex;align-items:center;justify-content:center;border:${state.ncFriends.includes(i)?'none':`.5px solid ${G.b}`};font-size:14px;color:#173404;">${state.ncFriends.includes(i)?'✓':''}</div></div>`).join('')}
+      <div class="sh" style="padding:0 0 8px;">Stake</div>
+      ${["Loser buys the round","Bragging rights","Loser picks tee time","Loser carries the bag","Custom stake"].map(st=>`<div onclick="state.ncStake='${st}';render()" style="padding:11px 14px;border-radius:10px;background:${state.ncStake===st?G.gB:G.s};border:.5px solid ${state.ncStake===st?'#639922':G.b};cursor:pointer;font-size:13px;color:${state.ncStake===st?G.gT:G.t};margin-bottom:4px;">${st}</div>`).join('')}
+      <div class="btn bg" onclick="state.ncStep=2;render();">Preview →</div>
+    </div>`;
+  }
+  else{
+    const isSkins=state.ncMetric==='skins',isCustom=state.ncMetric==='custom';
+    const mLabel=isSkins?`Skins — ${state.skinsHoles} holes${state.skinsCarry?' (carry)':''}`:isCustom?state.ncCustomMetric||'Custom challenge':METRICS.find(m=>m.id===state.ncMetric)?.l||state.ncMetric;
+    const dLabel=state.ncDurType==='single'?'Single round':state.ncDurType==='custom'?state.ncCustomDur||'Custom end date':state.ncDur;
+    const pBg=isSkins?G.aB:G.gB,pTC=isSkins?G.aT:G.gT,pSC=isSkins?G.aD:G.gD;
+    body=`<div style="padding:12px 16px;display:flex;flex-direction:column;gap:12px;">
+      <div style="border-radius:12px;padding:16px;background:${pBg};border:.5px solid ${isSkins?'#854F0B':'#639922'};">
+        <div style="font-size:15px;font-weight:500;color:${pTC};margin-bottom:6px;">${mLabel}</div>
+        <div style="font-size:12px;color:${pSC};line-height:1.7;">${state.ncType==='group'?'Group':'Head-to-head'} · ${dLabel} · ${state.ncFriends.length+1} players<br>Stake: ${state.ncStake}</div>
+      </div>
+      <div class="sh" style="padding:0 0 8px;">Players</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">${[{n:'You (AJ)',a:0},...state.ncFriends.map(i=>FEED[i])].map(p=>`<div style="text-align:center;">${av(p.n,p.a,38)}<div style="font-size:10px;color:${G.m};margin-top:4px;">${p.n.split(' ')[0]}</div></div>`).join('')}</div>
+      <div class="sh" style="padding:0 0 8px;">Message</div>
+      <div style="border-radius:10px;padding:12px 14px;background:${G.s};border:.5px solid ${G.b};font-size:13px;color:${G.t};line-height:1.6;">${isSkins?`"Skins — ${state.skinsHoles} holes${state.skinsCarry?', carry':''}, ${dLabel}. ${state.ncStake}. You in?"`:'"'+dLabel+'. '+mLabel+' wins. '+state.ncStake+'. No excuses."'}</div>
+      <div style="display:flex;gap:8px;"><div onclick="state.ncStep=1;render()" class="btn bx" style="flex:1;">Edit</div><div onclick="state.ncStep=0;state.chalTab=0;go('challenges')" class="btn" style="flex:2;background:${pBg};color:${pTC};">Send challenge</div></div>
+    </div>`;
+  }
+  return `<div class="screen active">
+    ${sb()}${topbar('New challenge','back()',right)}
+    <div class="scroll">${body}</div>
+    ${nav('challenges')}
+  </div>`;
+}
+function toggleFriend(i){
+  if(state.ncFriends.includes(i)) state.ncFriends=state.ncFriends.filter(x=>x!==i);
+  else state.ncFriends=[...state.ncFriends,i];
+  render();
+}
+
+// ── TOURNAMENT SCREENS ────────────────────────────────────────────────
+function renderHostSetup(){
+  return `<div class="screen active">
+    ${sb()}${topbar('Create tournament','back()')}
+    <div class="scroll" style="padding:12px 16px;display:flex;flex-direction:column;gap:14px;">
+      <div><div style="font-size:12px;color:${G.m};margin-bottom:6px;">Tournament name</div><input id="t-name" class="inp" placeholder="e.g. Club Championship 2025" value="${state.tName}"/></div>
+      <div><div style="font-size:12px;color:${G.m};margin-bottom:8px;">Pick lock time</div>
+        <div style="display:flex;gap:8px;">${["7:00 AM","7:30 AM","8:00 AM","8:30 AM"].map(t=>`<div onclick="state.tLock='${t}';render()" style="flex:1;text-align:center;padding:9px 4px;border-radius:10px;font-size:11px;font-weight:500;background:${state.tLock===t?G.gB:G.s};color:${state.tLock===t?G.gT:G.m};border:.5px solid ${state.tLock===t?'#639922':G.b};cursor:pointer;">${t}</div>`).join('')}</div>
+      </div>
+      <div><div style="font-size:12px;color:${G.m};margin-bottom:8px;">Stake</div>
+        ${["Loser buys the round","Bragging rights only","Loser picks tee time"].map(st=>`<div onclick="state.tStake='${st}';render()" style="margin-bottom:8px;border-radius:10px;padding:12px 14px;background:${state.tStake===st?G.gB:G.s};border:.5px solid ${state.tStake===st?'#639922':G.b};cursor:pointer;font-size:13px;color:${state.tStake===st?G.gT:G.t};">${st}</div>`).join('')}
+      </div>
+      <div class="btn bg" onclick="createTournament()">Create tournament →</div>
+    </div>
+    ${nav('challenges')}
+  </div>`;
+}
+function createTournament(){
+  const n=document.getElementById('t-name').value.trim();
+  if(!n){alert('Enter a tournament name');return;}
+  state.tName=n;
+  state.tournament={name:n,lock:state.tLock,stake:state.tStake,code:'PATTON-4821'};
+  state.chalTab=2;
+  go('host-lobby');
+}
+
+function renderHostLobby(){
+  return `<div class="screen active">
+    ${sb()}${topbar('Host lobby','back()')}
+    <div class="scroll">
+      <div style="margin:12px 16px;border-radius:12px;padding:20px;background:${G.gB};text-align:center;">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:${G.gD};margin-bottom:8px;">Share this code</div>
+        <div style="font-size:32px;font-weight:500;color:${G.gT};letter-spacing:.12em;margin-bottom:6px;">PATTON-4821</div>
+        <div style="font-size:12px;color:${G.gD};">${state.tournament?.name} · Lock: ${state.tournament?.lock}</div>
+      </div>
+      <div style="padding:0 16px 8px;display:flex;flex-direction:column;gap:8px;">
+        <div class="btn bb" onclick="state.regTier=null;go('add-player')">+ Register as a player</div>
+      </div>
+      <div class="sh">Field (${state.players.length} players)</div>
+      ${state.players.length===0?`<div style="margin:0 16px;padding:16px;border-radius:10px;background:${G.s};text-align:center;font-size:13px;color:${G.m};">No players yet. Go back and tap "+ Register as a player".</div>`
+        :state.players.map(p=>`<div style="margin:0 16px 6px;border-radius:10px;padding:10px 14px;background:${G.s};border:.5px solid ${G.b};display:flex;align-items:center;gap:10px;">${av(p.name,p.avIdx,34)}<div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${G.t};">${p.name}</div><div style="font-size:11px;color:${Object.values(p.picks).filter(Boolean).length===4?G.g:G.m};margin-top:1px;">${Object.values(p.picks).filter(Boolean).length===4?'Lineup locked ✓':'Needs lineup'}</div></div>${tb(p.tier)}</div>`).join('')}
+      <div style="padding:16px;display:flex;flex-direction:column;gap:8px;">
+        <div class="btn bg" onclick="lockAndStart()">Lock picks &amp; start scoring →</div>
+        <div style="font-size:11px;color:${G.m};text-align:center;">Freezes all picks. Score entry on next screen.</div>
+      </div>
+    </div>
+    ${nav('challenges')}
+  </div>`;
+}
+function lockAndStart(){state.locked=true;state.scoring=true;go('host-scoring');}
+
+function renderAddPlayer(){
+  return `<div class="screen active">
+    ${sb()}${topbar('Register & join','back()')}
+    <div class="scroll" style="padding:12px 16px;display:flex;flex-direction:column;gap:12px;">
+      ${state.tournament?`<div style="border-radius:10px;padding:10px 14px;background:${G.gB};"><div style="font-size:13px;font-weight:500;color:${G.gT};">${state.tournament.name}</div><div style="font-size:11px;color:${G.gD};margin-top:2px;">Code: PATTON-4821 · Lock: ${state.tournament.lock}</div></div>`:''}
+      <div><div style="font-size:12px;color:${G.m};margin-bottom:6px;">Your full name</div><input id="reg-name" class="inp" placeholder="e.g. John Smith"/></div>
+      <div><div style="font-size:12px;color:${G.m};margin-bottom:8px;">Your skill tier — be honest</div>
+        ${Object.entries(TIERS).map(([k,t])=>`<div onclick="state.regTier='${k}';render()" style="margin-bottom:8px;border-radius:10px;padding:12px 14px;background:${state.regTier===k?t.bg:G.s};border:.5px solid ${state.regTier===k?t.br:G.b};cursor:pointer;display:flex;align-items:center;gap:12px;">
+          <div style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.2);border:2px solid ${t.br};display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:16px;font-weight:600;color:${t.c};">${k}</span></div>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${state.regTier===k?t.c:G.t};">${t.l}</div><div style="font-size:12px;color:${G.m};margin-top:1px;">${t.d}</div></div>
+          ${state.regTier===k?`<span style="color:${t.c};font-size:16px;">✓</span>`:''}
+        </div>`).join('')}
+      </div>
+      <div id="reg-err" style="font-size:12px;color:${G.r};display:none;"></div>
+      <div class="btn bg" onclick="registerPlayer()">Register &amp; build lineup →</div>
+    </div>
+    ${nav('challenges')}
+  </div>`;
+}
+function registerPlayer(){
+  const name=document.getElementById('reg-name').value.trim();
+  const errEl=document.getElementById('reg-err');
+  if(!name){errEl.textContent='Enter your name';errEl.style.display='block';return;}
+  if(!state.regTier){errEl.textContent='Pick your tier';errEl.style.display='block';return;}
+  errEl.style.display='none';
+  const id=state.uid++;
+  state.players.push({id,name,tier:state.regTier,avIdx:state.players.length,picks:{A:null,B:null,C:null,D:null},score:null});
+  state.currentPid=id;
+  state.pickDraft={A:null,B:null,C:null,D:null};
+  state.regTier=null;
+  go('player-pick');
+}
+
+function openPick(id){
+  const p=state.players.find(x=>x.id===id);if(!p)return;
+  state.currentPid=id;
+  state.pickDraft={...p.picks};
+  go('player-pick');
+}
+
+function renderPlayerPick(){
+  const cp=state.players.find(x=>x.id===state.currentPid);
+  if(!cp) return renderChallenges();
+  const filled=Object.values(state.pickDraft).filter(Boolean).length;
+  let slots='';
+  ['A','B','C','D'].forEach(tier=>{
+    const pk=state.pickDraft[tier];const t=TIERS[tier];
+    slots+=`<div onclick="if(${pk?'true':'false'}){state.pickDraft['${tier}']=null;render()}" style="flex:1;height:60px;border-radius:12px;background:${pk?t.bg:G.s2};border:1.5px solid ${pk?t.br:G.b};display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:${pk?'pointer':'default'};padding:4px;">
+      ${pk?`${av(pk.name,pk.avIdx,20)}<div style="font-size:8px;color:${t.c};margin-top:2px;text-align:center;max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${pk.name.split(' ')[0]}</div><div style="font-size:7px;color:${t.c};opacity:.6;">remove</div>`:`<div style="font-size:16px;font-weight:600;color:${G.m};">${tier}</div><div style="font-size:8px;color:${G.m};">empty</div>`}
+    </div>`;
+  });
+  let lists='';
+  ['A','B','C','D'].forEach(tier=>{
+    const t=TIERS[tier];
+    const avail=state.players.filter(p=>p.tier===tier&&p.id!==cp.id);
+    lists+=`<div style="display:flex;align-items:center;gap:8px;padding:10px 16px 6px;"><span class="pill" style="background:${t.bg};color:${t.c};border:.5px solid ${t.br};">${tier}</span><span style="font-size:11px;color:${G.m};">${t.d} · ${avail.length} available</span></div>`;
+    if(avail.length===0) lists+=`<div style="padding:8px 16px;font-size:12px;color:${G.m};font-style:italic;">No ${tier}-tier players yet. Go back and register more players.</div>`;
+    else avail.forEach(p=>{
+      const sel=state.pickDraft[tier]?.id===p.id;
+      const used=Object.entries(state.pickDraft).some(([k,v])=>k!==tier&&v?.id===p.id);
+      lists+=`<div onclick="${used?'void 0':`togglePick('${tier}',${p.id})`}" style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:.5px solid ${G.s2};background:${sel?t.bg:G.bg};cursor:${used?'default':'pointer'};opacity:${used?.35:1};">${av(p.name,p.avIdx,34)}<div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${sel?t.c:G.t};">${p.name}</div><div style="font-size:11px;color:${G.m};margin-top:1px;">${used?'Already in another slot':t.d}</div></div><div style="width:24px;height:24px;border-radius:50%;background:${sel?t.c:G.s2};display:flex;align-items:center;justify-content:center;border:${sel?'none':`.5px solid ${G.b}`};font-size:14px;color:${sel?G.bg:G.m};">${sel?'✓':''}</div></div>`;
+    });
+  });
+  return `<div class="screen active">
+    ${sb()}${topbar(`${cp.name}'s lineup`,'back()',`<span style="color:${filled===4?G.g:G.m};">${filled}/4</span>`)}
+    <div class="scroll">
+      <div style="display:flex;gap:8px;padding:12px 16px;background:${G.s};border-bottom:.5px solid ${G.b};">${slots}</div>
+      ${lists}
+      <div style="padding:12px 16px 20px;">
+        <div onclick="${filled===4?'savePicks()':'void 0'}" class="btn" style="background:${filled===4?G.gB:G.s2};color:${filled===4?G.gT:G.m};">
+          ${filled===4?'Lock in my lineup →':'Pick '+(4-filled)+' more player'+(4-filled===1?'':'s')}
+        </div>
+      </div>
+    </div>
+    ${nav('challenges')}
+  </div>`;
+}
+function togglePick(tier,id){
+  const p=state.players.find(x=>x.id===id);if(!p)return;
+  if(state.pickDraft[tier]?.id===id) state.pickDraft[tier]=null;
+  else state.pickDraft[tier]=p;
+  render();
+}
+function savePicks(){
+  state.players=state.players.map(p=>p.id===state.currentPid?{...p,picks:{...state.pickDraft}}:p);
+  // Show confirm then go back to add more players or challenges
+  const app=document.getElementById('app');
+  app.innerHTML=`<div class="screen active">
+    ${sb()}${topbar('Lineup locked in','back()')}
+    <div class="scroll" style="padding:12px 16px;display:flex;flex-direction:column;gap:10px;">
+      <div style="border-radius:12px;padding:24px;background:${G.gB};text-align:center;">
+        <div style="font-size:40px;margin-bottom:8px;">✅</div>
+        <div style="font-size:16px;font-weight:500;color:${G.gT};">${state.players.find(x=>x.id===state.currentPid)?.name}'s lineup is locked</div>
+        <div style="font-size:12px;color:${G.gD};margin-top:4px;">Check back when scoring starts</div>
+      </div>
+      ${['A','B','C','D'].map(tier=>{const pk=state.pickDraft[tier];const t=TIERS[tier];if(!pk)return'';return `<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;background:${t.bg};border:.5px solid ${t.br};"><span class="pill" style="background:rgba(0,0,0,.2);color:${t.c};border:.5px solid ${t.br};">${tier}</span>${av(pk.name,pk.avIdx,28)}<div style="flex:1;font-size:13px;font-weight:500;color:${t.c};">${pk.name}</div></div>`;}).join('')}
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <div class="btn bb" style="flex:1;" onclick="state.regTier=null;go('add-player')">+ Add another player</div>
+        <div class="btn bg" style="flex:1;" onclick="state.chalTab=2;go('challenges')">Back to tournament</div>
+      </div>
+    </div>
+    ${nav('challenges')}
+  </div>`;
+}
+
+function renderHostScoring(){
+  const lb=calcLB();
+  return `<div class="screen active">
+    ${sb()}${topbar('Scores & leaderboard','back()')}
+    <div class="scroll">
+      <div style="margin:10px 16px;border-radius:10px;padding:10px 14px;background:${G.rB};display:flex;justify-content:space-between;">
+        <span style="font-size:13px;font-weight:500;color:${G.r};">Round in progress</span>
+        <span style="font-size:11px;color:${G.r};">Picks locked</span>
+      </div>
+      <div class="sh">Enter scores (to par)</div>
+      ${state.players.map(p=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:.5px solid ${G.b};">${av(p.name,p.avIdx,32)}<div style="flex:1;font-size:13px;font-weight:500;color:${G.t};">${p.name}</div>${tb(p.tier)}<input oninput="updateScore(${p.id},this.value)" value="${p.score??''}" placeholder="+/-" style="width:52px;border-radius:8px;padding:8px;font-size:14px;font-weight:500;background:${G.s};border:.5px solid ${G.b};color:${G.t};font-family:inherit;outline:none;text-align:center;margin-left:8px;"/></div>`).join('')}
+      <div class="sh">Live leaderboard</div>
+      ${lb.length===0?`<div style="margin:0 16px;padding:14px;border-radius:10px;background:${G.s};text-align:center;font-size:13px;color:${G.m};">No complete lineups yet.</div>`
+        :lb.map((e,i)=>{const iF=i===0,iL=i===lb.length-1&&lb.length>1;return `<div style="margin:0 16px 8px;border-radius:10px;padding:12px 14px;background:${iF?G.rB:G.s};border:.5px solid ${iF?G.rB:G.b};">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><div style="font-size:15px;font-weight:500;color:${iF?G.r:G.m};width:28px;">#${i+1}</div>${av(e.name,e.avIdx,28)}<div style="flex:1;margin-left:4px;font-size:13px;font-weight:500;color:${iF?G.r:G.t};">${e.name}</div><div style="font-size:16px;font-weight:500;color:${iF?G.r:iL?G.a:G.g};">${e.total>0?'+':''}${e.total}</div></div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">${['A','B','C','D'].map(tier=>{const pk=e.picks[tier];const t=TIERS[tier];const live=state.players.find(r=>r.id===pk?.id);const sc=live?.score;if(!pk)return'';return `<div style="display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;background:${t.bg};"><span style="font-size:10px;font-weight:600;color:${t.c};">${tier}:</span><span style="font-size:10px;color:${t.c};">${pk.name.split(' ')[0]}</span>${sc!=null?`<span style="font-size:10px;font-weight:500;color:${sc<=0?G.g:G.r};">${sc>0?'+':''}${sc}</span>`:''}</div>`;}).join('')}</div>
+          ${iL?`<div style="font-size:11px;color:${G.aD};margin-top:8px;">⚠ On the hook — ${state.tournament?.stake}</div>`:''}
+        </div>`;}).join('')}
+      <div style="height:16px;"></div>
+    </div>
+    ${nav('challenges')}
+  </div>`;
+}
+function updateScore(id,val){
+  const n=parseInt(val);
+  state.players=state.players.map(p=>p.id===id?{...p,score:isNaN(n)?null:n}:p);
+  // re-render just the leaderboard section without full re-render (keeps inputs focused)
+  const lb=calcLB();
+  const lbEl=document.querySelector('[data-lb]');
+  if(lbEl){
+    if(lb.length===0){lbEl.innerHTML=`<div style="margin:0 16px;padding:14px;border-radius:10px;background:${G.s};text-align:center;font-size:13px;color:${G.m};">No complete lineups yet.</div>`;}
+    else{lbEl.innerHTML=lb.map((e,i)=>{const iF=i===0,iL=i===lb.length-1&&lb.length>1;return `<div style="margin:0 16px 8px;border-radius:10px;padding:12px 14px;background:${iF?G.rB:G.s};border:.5px solid ${iF?G.rB:G.b};"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><div style="font-size:15px;font-weight:500;color:${iF?G.r:G.m};width:28px;">#${i+1}</div>${av(e.name,e.avIdx,28)}<div style="flex:1;margin-left:4px;font-size:13px;font-weight:500;color:${iF?G.r:G.t};">${e.name}</div><div style="font-size:16px;font-weight:500;color:${iF?G.r:iL?G.a:G.g};">${e.total>0?'+':''}${e.total}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;">${['A','B','C','D'].map(tier=>{const pk=e.picks[tier];const t=TIERS[tier];const live=state.players.find(r=>r.id===pk?.id);const sc=live?.score;if(!pk)return'';return `<div style="display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;background:${t.bg};"><span style="font-size:10px;font-weight:600;color:${t.c};">${tier}:</span><span style="font-size:10px;color:${t.c};">${pk.name.split(' ')[0]}</span>${sc!=null?`<span style="font-size:10px;font-weight:500;color:${sc<=0?G.g:G.r};">${sc>0?'+':''}${sc}</span>`:''}</div>`;}).join('')}</div>${iL?`<div style="font-size:11px;color:${G.aD};margin-top:8px;">⚠ On the hook — ${state.tournament?.stake}</div>`:''}</div>`;}).join('');}
+  }
+}
+
+// ── BOOT ─────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
