@@ -8,43 +8,47 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{background:#0a0a09;display:flex;justify-content:center;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
 #app{width:100%;max-width:390px;background:#111110;min-height:100vh;display:flex;flex-direction:column;}
-.screen{display:none;flex-direction:column;height:100vh;overflow:hidden;}
-.screen.active{display:flex;}
+.scr{display:none;flex-direction:column;height:100vh;overflow:hidden;}
+.scr.on{display:flex;}
 .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .scroll::-webkit-scrollbar{display:none;}
-.sb{display:flex;justify-content:space-between;padding:14px 20px 4px;font-size:11px;font-weight:500;color:#F1EFE8;flex-shrink:0;background:#111110;}
-.topbar{display:flex;align-items:center;padding:8px 16px 10px;border-bottom:.5px solid #333331;flex-shrink:0;background:#111110;}
-.topbar .back{font-size:13px;color:#888780;cursor:pointer;min-width:50px;}
-.topbar .title{font-size:17px;font-weight:500;color:#F1EFE8;flex:1;text-align:center;}
-.topbar .right{min-width:50px;text-align:right;font-size:13px;cursor:pointer;}
+.sb{display:flex;justify-content:space-between;padding:14px 20px 4px;font-size:11px;font-weight:500;color:#F1EFE8;flex-shrink:0;}
+.tb{display:flex;align-items:center;padding:8px 16px 10px;border-bottom:.5px solid #333331;flex-shrink:0;}
+.tb .bk{font-size:13px;color:#888780;cursor:pointer;min-width:50px;}
+.tb .tt{font-size:17px;font-weight:500;color:#F1EFE8;flex:1;text-align:center;}
+.tb .rt{min-width:50px;text-align:right;font-size:13px;cursor:pointer;}
 .nav{display:flex;justify-content:space-around;padding:10px 0 18px;background:#1C1C1A;border-top:.5px solid #333331;flex-shrink:0;}
 .ni{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;}
 .ni span{font-size:10px;color:#888780;}
 .ni.on span{color:#97C459;}
 .sh{padding:10px 16px 6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#888780;}
-.card{background:#1C1C1A;border-radius:12px;padding:12px 14px;margin:0 16px 8px;}
-.btn{border-radius:12px;padding:13px;text-align:center;font-size:13px;font-weight:500;cursor:pointer;display:block;}
+.btn{border-radius:12px;padding:13px;text-align:center;font-size:13px;font-weight:500;cursor:pointer;display:block;border:none;width:100%;}
 .bg{background:#27500A;color:#C0DD97;}
 .bb{background:#042C53;color:#85B7EB;}
 .br{background:#501313;color:#F09595;}
 .ba{background:#412402;color:#FAC775;}
-.bx{background:#252523;color:#F1EFE8;border:.5px solid #333331;}
+.bx{background:#252523;color:#F1EFE8;border:.5px solid #333331 !important;}
 .tabs{display:flex;padding:0 16px;border-bottom:.5px solid #333331;flex-shrink:0;}
 .tab{flex:1;text-align:center;padding:8px 0;font-size:12px;font-weight:500;color:#888780;cursor:pointer;border-bottom:2px solid transparent;}
 .tab.on{color:#97C459;border-color:#97C459;}
 .inp{width:100%;border-radius:10px;padding:11px 14px;font-size:13px;background:#1C1C1A;border:.5px solid #333331;color:#F1EFE8;font-family:inherit;outline:none;}
 .inp:focus{border-color:#639922;}
 .pill{font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px;display:inline-block;}
+.card{background:#1C1C1A;border-radius:12px;padding:12px 14px;margin:0 16px 8px;}
+.overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center;z-index:100;}
+.sheet{background:#1C1C1A;border-radius:20px 20px 0 0;padding:20px 16px 32px;width:100%;max-width:390px;max-height:80vh;overflow-y:auto;}
+.chart-bar{display:flex;align-items:flex-end;gap:4px;height:80px;}
+.bar{flex:1;border-radius:4px 4px 0 0;background:#27500A;min-width:8px;transition:height .3s;}
 </style>
 </head>
 <body>
 <div id="app"></div>
+<script src="ai.js"></script>
 <script>
-// ── COLORS & DATA ────────────────────────────────────────────────────
+// ── COLORS ───────────────────────────────────────────────────────────
 const G={bg:"#111110",s:"#1C1C1A",s2:"#252523",t:"#F1EFE8",m:"#888780",b:"#333331",
   g:"#97C459",gB:"#27500A",gT:"#C0DD97",gD:"#5DCAA5",
-  r:"#F09595",rB:"#501313",
-  a:"#EF9F27",aB:"#412402",aT:"#FAC775",aD:"#BA7517",
+  r:"#F09595",rB:"#501313",a:"#EF9F27",aB:"#412402",aT:"#FAC775",aD:"#BA7517",
   bl:"#85B7EB",blB:"#042C53",pu:"#AFA9EC",puB:"#26215C"};
 
 const TIERS={
@@ -58,94 +62,206 @@ const AVC=[{bg:"#27500A",c:"#C0DD97"},{bg:"#042C53",c:"#85B7EB"},{bg:"#412402",c
   {bg:"#26215C",c:"#AFA9EC"},{bg:"#501313",c:"#F09595"},{bg:"#085041",c:"#5DCAA5"},
   {bg:"#1a3a1a",c:"#97C459"},{bg:"#2a1a00",c:"#EF9F27"}];
 
-const FEED=[
-  {n:"Marcus T.",a:1,s:"2h ago · Cog Hill",pills:[{t:"+8% GIR",bg:"#27500A",c:"#C0DD97"},{t:"-3 putts",bg:"#27500A",c:"#C0DD97"},{t:"Driver↓",bg:"#501313",c:"#F09595"}],f:"Gained 0.4 strokes on Marcus",fc:"#888780"},
-  {n:"Sarah R.",a:2,s:"Yesterday · Butler National",pills:[{t:"Hdcp -2.1",bg:"#27500A",c:"#C0DD97"},{t:"14 rounds",bg:"#252523",c:"#888780"}],f:"Leading the Oct challenge",fc:"#97C459"},
-  {n:"Dan K.",a:3,s:"2 days ago · Medinah",pills:[{t:"+1.3 hdcp",bg:"#501313",c:"#F09595"},{t:"5 rounds",bg:"#252523",c:"#888780"}],f:"Gained 2.4 strokes on Dan since Aug",fc:"#888780"},
-  {n:"Jake B.",a:4,s:"3 days ago · Olympia Fields",pills:[{t:"-0.8 hdcp",bg:"#27500A",c:"#C0DD97"},{t:"8 rounds",bg:"#252523",c:"#888780"}],f:"Closing the gap — watch out",fc:"#EF9F27"}
-];
+const CLUBS=["Driver","3W","5W","4i","5i","6i","7i","8i","9i","PW","52°","56°","60°","Putter"];
 
-const NET=[
+const NET_DATA=[
   {n:"Marcus T.",a:1,r:"VP of Sales · SaaS · Chicago",av:"Sat AM",ac:"#97C459",h:"11.4",rd:18,mu:2,mb:"#27500A",mc:"#C0DD97",l:"Cog Hill · 3 days ago",bb:"#27500A",bc:"#C0DD97"},
   {n:"Jamie R.",a:2,r:"Director BD · Fintech · Evanston",av:"Sun AM",ac:"#EF9F27",h:"14.1",rd:12,mu:1,mb:"#252523",mc:"#888780",l:"Medinah · last week",bb:"#252523",bc:"#F1EFE8"},
   {n:"Kevin L.",a:3,r:"Partner · PE · Oak Park",av:"Flexible",ac:"#888780",h:"7.2",rd:30,mu:3,mb:"#042C53",mc:"#85B7EB",l:"Butler Natl · 5 days ago",bb:"#042C53",bc:"#85B7EB"},
   {n:"Dana M.",a:5,r:"CFO · Healthcare · Naperville",av:"Sat AM",ac:"#97C459",h:"18.0",rd:8,mu:1,mb:"#252523",mc:"#888780",l:"New to area",bb:"#27500A",bc:"#C0DD97"}
 ];
 
-const HOLES=[
-  {p:4,y:387,d:"Dogleg right",m:"Driver → trouble 3 rounds straight. 3W gave you fairway twice.",has:true,pr:[{d:"Aug 12 · Driver",r:"Rough · bogey",g:false},{d:"Aug 28 · Driver",r:"OB · double",g:false},{d:"Sep 14 · 3W",r:"Fairway · par",g:true},{d:"Oct 2 · 3W",r:"Fairway · birdie",g:true}]},
-  {p:3,y:185,d:"Slight uphill",m:"8-iron runs through back. 9-iron is your number.",has:true,pr:[{d:"Sep 14 · 8i",r:"Over green",g:false},{d:"Oct 2 · 9i",r:"Pin high · par",g:true}]},
-  {p:5,y:520,d:"Straight",m:"No data yet for this hole.",has:false,pr:[]},
-  {p:4,y:412,d:"Dogleg left",m:"Lay up to 100 yards — your strongest distance.",has:true,pr:[{d:"Aug 12 · Driver",r:"Fairway",g:true},{d:"Sep 14 · 3W lay",r:"Wedge · birdie",g:true}]},
-  {p:4,y:356,d:"Straight",m:"Short iron from tee leaves perfect wedge. Don't try to drive it.",has:true,pr:[{d:"Aug 28 · Driver",r:"Bunker · bogey",g:false},{d:"Oct 2 · 7i tee",r:"Wedge in · par",g:true}]},
-  {p:3,y:162,d:"No wind shelter",m:"Club up one — exposed to wind every round.",has:true,pr:[{d:"Aug 12 · 8i",r:"Short · bogey",g:false},{d:"Sep 14 · 7i",r:"On green · par",g:true}]},
-  {p:4,y:387,d:"Dogleg right",m:"Driver → trouble 3 rounds straight. 3W gave you fairway twice.",has:true,pr:[{d:"Aug 12 · Driver",r:"Rough · bogey",g:false},{d:"Aug 28 · Driver",r:"OB · double",g:false},{d:"Sep 14 · 3W",r:"Fairway · par",g:true},{d:"Oct 2 · 3W",r:"Fairway · birdie",g:true}]},
-  {p:5,y:498,d:"Slight left",m:"Two good irons set up a wedge. Ego driver costs you.",has:true,pr:[{d:"Sep 14 · Driver",r:"OB · double",g:false},{d:"Oct 2 · 3W layup",r:"Wedge · birdie",g:true}]},
-  {p:4,y:445,d:"Long straight",m:"Only hole where driver is right. Fairway wood leaves too much.",has:true,pr:[{d:"Aug 12 · 3W",r:"220 left · bogey",g:false},{d:"Sep 14 · Driver",r:"Fairway · par",g:true}]}
+const HOLES_DEF=[
+  {p:4,y:387,d:"Dogleg right"},{p:3,y:185,d:"Slight uphill"},{p:5,y:520,d:"Straight"},
+  {p:4,y:412,d:"Dogleg left"},{p:4,y:356,d:"Straight"},{p:3,y:162,d:"No wind shelter"},
+  {p:4,y:387,d:"Dogleg right"},{p:5,y:498,d:"Slight left"},{p:4,y:445,d:"Long straight"}
 ];
 
-const CHAL=[
-  {title:"Most improved handicap",sub:"12 friends · 11 days left",rank:2,of:12,pct:72,bg:"#27500A",tc:"#C0DD97",sc:"#5DCAA5",pc:"#97C459",pb:"#173404",you:"-1.8 this month",lead:"Leader: -2.1"},
-  {title:"Fewest 3-putts — 5 rounds",sub:"8 players · 3 days left",rank:1,of:8,pct:90,bg:"#412402",tc:"#FAC775",sc:"#BA7517",pc:"#EF9F27",pb:"#2a1700",you:"Avg: 1.4/round",lead:"2nd: 1.7"},
-  {title:"GIR from 150+ yards",sub:"6 players · 19 days left",rank:4,of:6,pct:38,bg:"#252523",tc:"#F1EFE8",sc:"#888780",pc:"#888780",pb:"#1C1C1A",you:"Your rate: 28%",lead:"Leader: 41%"}
-];
+// ── PERSISTENT STATE (localStorage) ──────────────────────────────────
+function loadState(){
+  try{
+    const saved=localStorage.getItem('patton_v2');
+    if(saved) return JSON.parse(saved);
+  }catch(e){}
+  return null;
+}
+function saveState(){
+  try{ localStorage.setItem('patton_v2',JSON.stringify(state)); }catch(e){}
+}
 
-// ── STATE ────────────────────────────────────────────────────────────
-let state={
-  screen:"feed", prevScreen:"feed",
-  chalTab:0, feedTab:0, profTab:0,
-  hole:6, holeLog:{},
-  tournament:null, players:[], locked:false, scoring:false, uid:1,
+const DEFAULT_STATE={
+  onboarded:false,
+  screen:"onboard", prevScreen:"feed",
+  // user profile
+  user:{name:"Adrian J.",hdcp:14.2,avIdx:0},
+  friends:[
+    {id:1,name:"Marcus T.",avIdx:1,hdcp:11.4},
+    {id:2,name:"Sarah R.",avIdx:2,hdcp:9.1},
+    {id:3,name:"Dan K.",avIdx:3,hdcp:16.2},
+    {id:4,name:"Jake B.",avIdx:4,hdcp:21.0}
+  ],
+  // rounds logged
+  rounds:[], // {id,date,course,holes:[{club,result,score}],summary:{fairways,gir,putts,score}}
+  currentRound:null, // active round being played
+  currentHole:0,
+  holeLog:{}, // {holeIdx:{club,result}} for current round
+  // caddie memory derived from rounds
+  caddieMem:{}, // {holeIdx:[{club,result,date}]}
+  // challenges
+  challenges:[
+    {id:1,type:"progress",metric:"hdcp",title:"Most improved handicap",sub:"12 friends · 11 days left",rank:2,of:12,pct:72,bg:"#27500A",tc:"#C0DD97",sc:"#5DCAA5",pc:"#97C459",pb:"#173404",you:"-1.8 this month",lead:"Leader: -2.1"},
+    {id:2,type:"skins",title:"Skins — Saturday at Cog Hill",sub:"Marcus · Sarah · Dan · You · 3 days",skinsData:{holes:18,carry:true,players:["You","Marcus T.","Sarah R.","Dan K."],scores:{},skins:{}},bg:"#412402",tc:"#FAC775",sc:"#BA7517"},
+    {id:3,type:"progress",metric:"putts",title:"Fewest 3-putts",sub:"8 players · 3 days left",rank:1,of:8,pct:90,bg:"#412402",tc:"#FAC775",sc:"#BA7517",pc:"#EF9F27",pb:"#2a1700",you:"Avg: 1.4/round",lead:"2nd: 1.7"}
+  ],
+  // tournament
+  tournament:null, players:[], locked:false, scoring:false, uid:100,
   regTier:null, currentPid:null, pickDraft:{A:null,B:null,C:null,D:null},
   tName:"", tLock:"8:00 AM", tStake:"Loser buys the round",
+  // new challenge wizard
   ncStep:0, ncType:"group", ncMetric:"hdcp", ncDur:"30 days",
   ncStake:"Loser buys the round", ncFriends:[0,1],
   ncDurType:"preset", ncCustomMetric:"", ncCustomDur:"",
   skinsHoles:18, skinsCarry:true,
-  notePlayer:null, netFilter:"This week"
+  // network
+  notes:{}, // {playerIdx: {tags,text,reminder}}
+  roundRequests:[], // [{playerIdx,msg,time}]
+  feedReminders:[], // [{playerIdx,time}]
+  netFilter:"This week",
+  // ui
+  chalTab:0, feedTab:0, profTab:0, notePlayer:null,
+  overlay:null, // current overlay id
+  hdcpHistory:[14.8,14.6,14.9,14.4,14.2,14.0,13.8,14.2,13.9,13.6,14.2],
+  // onboarding
+  onboardStep:0, onboardHdcp:"", onboardName:"Adrian J.",
+  // skins live scoring
+  activeSkins:null,
+  skinsSheet:false,
+  aiAdvice:{}, aiLoading:false,
+  aiRecap:null, aiRecapLoading:false,
+  aiWeeklySummary:null, aiWeeklySummaryLoading:false,
+  aiDraft:null, aiDraftLoading:false,
+  aiChallenge:null, aiChallengeLoading:false,
 };
+
+let state=loadState()||JSON.parse(JSON.stringify(DEFAULT_STATE));
+if(!state.notes) state.notes={};
+if(!state.rounds) state.rounds=[];
+if(!state.caddieMem) state.caddieMem={};
+if(!state.holeLog) state.holeLog={};
+if(!state.hdcpHistory) state.hdcpHistory=[14.8,14.6,14.9,14.4,14.2,14.0,13.8,14.2,13.9,13.6,14.2];
+if(!state.feedReminders) state.feedReminders=[];
+if(!state.roundRequests) state.roundRequests=[];
+if(state.onboarded===undefined) state.onboarded=false;
+if(!state.aiAdvice) state.aiAdvice={};
+if(state.aiRecap===undefined) state.aiRecap=null;
+if(state.aiChallenge===undefined) state.aiChallenge=null;
 
 // ── HELPERS ──────────────────────────────────────────────────────────
 const ini=n=>n.trim().split(" ").filter(Boolean).map(w=>w[0].toUpperCase()).join("").slice(0,2)||"?";
 const av=(n,idx,sz)=>{const a=AVC[idx%AVC.length];return `<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${a.bg};display:flex;align-items:center;justify-content:center;font-size:${sz*.36}px;font-weight:500;color:${a.c};flex-shrink:0;">${ini(n)}</div>`;};
-const tb=(t)=>{const d=TIERS[t];return `<span class="pill" style="background:${d.bg};color:${d.c};border:.5px solid ${d.br};">${t}</span>`;};
-const navIcons=(active)=>{
-  const ic=(id,path)=>`<div class="ni${active===id?' on':''}" onclick="go('${id}')"><svg width="22" height="22" viewBox="0 0 22 22" fill="none">${path}</svg><span>${id.charAt(0).toUpperCase()+id.slice(1)}</span></div>`;
-  return `
-    ${ic('feed','<path d="M3 11L11 3l8 8" stroke="'+(active==='feed'?G.g:G.m)+'" stroke-width="1.5" stroke-linecap="round"/><path d="M5 9v8a1 1 0 001 1h4v-4h2v4h4a1 1 0 001-1V9" stroke="'+(active==='feed'?G.g:G.m)+'" stroke-width="1.5" stroke-linecap="round"/>')}
-    ${ic('challenges','<circle cx="11" cy="11" r="8" stroke="'+(active==='challenges'?G.g:G.m)+'" stroke-width="1.5"/><path d="M11 7v4l3 3" stroke="'+(active==='challenges'?G.g:G.m)+'" stroke-width="1.5" stroke-linecap="round"/>')}
-    ${ic('round','<path d="M4 6h14M4 11h14M4 16h14" stroke="'+(active==='round'?G.g:G.m)+'" stroke-width="1.5" stroke-linecap="round"/>')}
-    ${ic('network','<circle cx="8" cy="8" r="3.5" stroke="'+(active==='network'?G.g:G.m)+'" stroke-width="1.5"/><circle cx="16" cy="7" r="2.5" stroke="'+(active==='network'?G.g:G.m)+'" stroke-width="1.5"/><path d="M2 18c0-3 2.7-5 6-5s6 2 6 5" stroke="'+(active==='network'?G.g:G.m)+'" stroke-width="1.5" stroke-linecap="round"/><path d="M16 12c2 0 4 1.3 4 3.5" stroke="'+(active==='network'?G.g:G.m)+'" stroke-width="1.5" stroke-linecap="round"/>')}
-    ${ic('profile','<circle cx="11" cy="8" r="3.5" stroke="'+(active==='profile'?G.g:G.m)+'" stroke-width="1.5"/><path d="M4 19c0-3.9 3.1-7 7-7h.5c3.9 0 7 3.1 7 7" stroke="'+(active==='profile'?G.g:G.m)+'" stroke-width="1.5" stroke-linecap="round"/>')}
-  `;
-};
-const nav=(active)=>`<div class="nav">${navIcons(active)}</div>`;
+const tb_=(t)=>{const d=TIERS[t];return `<span class="pill" style="background:${d.bg};color:${d.c};border:.5px solid ${d.br};">${t}</span>`;};
 const sb=()=>`<div class="sb"><span>9:41</span><span>87%</span></div>`;
-const topbar=(title,back,right='')=>`<div class="topbar"><div class="back" onclick="${back||'back()'}">${back?'← Back':''}</div><div class="title">${title}</div><div class="right">${right}</div></div>`;
+const topbar=(title,back,right='')=>`<div class="tb"><div class="bk" onclick="${back||'back()'}">${back!==false?'← Back':''}</div><div class="tt">${title}</div><div class="rt">${right}</div></div>`;
 
-function calcLB(){
-  return state.players
-    .filter(p=>Object.values(p.picks).filter(Boolean).length===4)
-    .map(p=>({...p,total:Object.values(p.picks).filter(Boolean).reduce((s,pk)=>{
-      const live=state.players.find(r=>r.id===pk.id);return s+(live?.score??0);},0)}))
-    .sort((a,b)=>a.total-b.total);
+function navHtml(active){
+  const tabs=[
+    {id:'feed',label:'Feed',path:'<path d="M3 11L11 3l8 8" stroke="COLOR" stroke-width="1.5" stroke-linecap="round"/><path d="M5 9v8a1 1 0 001 1h4v-4h2v4h4a1 1 0 001-1V9" stroke="COLOR" stroke-width="1.5" stroke-linecap="round"/>'},
+    {id:'challenges',label:'Challenges',path:'<circle cx="11" cy="11" r="8" stroke="COLOR" stroke-width="1.5"/><path d="M11 7v4l3 3" stroke="COLOR" stroke-width="1.5" stroke-linecap="round"/>'},
+    {id:'round',label:'Round',path:'<path d="M4 6h14M4 11h14M4 16h14" stroke="COLOR" stroke-width="1.5" stroke-linecap="round"/>'},
+    {id:'network',label:'Network',path:'<circle cx="8" cy="8" r="3.5" stroke="COLOR" stroke-width="1.5"/><circle cx="16" cy="7" r="2.5" stroke="COLOR" stroke-width="1.5"/><path d="M2 18c0-3 2.7-5 6-5s6 2 6 5" stroke="COLOR" stroke-width="1.5" stroke-linecap="round"/><path d="M16 12c2 0 4 1.3 4 3.5" stroke="COLOR" stroke-width="1.5" stroke-linecap="round"/>'},
+    {id:'profile',label:'Profile',path:'<circle cx="11" cy="8" r="3.5" stroke="COLOR" stroke-width="1.5"/><path d="M4 19c0-3.9 3.1-7 7-7h.5c3.9 0 7 3.1 7 7" stroke="COLOR" stroke-width="1.5" stroke-linecap="round"/>'}
+  ];
+  return `<div class="nav">${tabs.map(t=>{const on=active===t.id;const c=on?G.g:G.m;return `<div class="ni${on?' on':''}" onclick="go('${t.id}')"><svg width="22" height="22" viewBox="0 0 22 22" fill="none">${t.path.replace(/COLOR/g,c)}</svg><span>${t.label}</span></div>`;}).join('')}</div>`;
+}
+
+// ── COMPUTED STATS FROM ROUNDS ─────────────────────────────────────
+function computeStats(){
+  const rounds=state.rounds;
+  if(!rounds.length) return {fairways:null,gir:null,putts:null,avgScore:null,hdcpTrend:null};
+  const last5=rounds.slice(-5);
+  let fw=0,fwTotal=0,girCount=0,girTotal=0,puttCount=0,scoreTotal=0;
+  last5.forEach(r=>{
+    if(r.summary){
+      fw+=r.summary.fairways||0; fwTotal+=r.summary.fwTotal||9;
+      girCount+=r.summary.gir||0; girTotal+=9;
+      puttCount+=r.summary.putts||0;
+      scoreTotal+=r.summary.score||0;
+    }
+  });
+  const fwPct=fwTotal>0?Math.round(fw/fwTotal*100):null;
+  const girPct=girTotal>0?Math.round(girCount/girTotal*100):null;
+  const avgPutts=last5.length>0?+(puttCount/last5.length).toFixed(1):null;
+  const avgScore=last5.length>0?Math.round(scoreTotal/last5.length):null;
+  // compare to prior 5
+  const prior=rounds.slice(-10,-5);
+  let priorFw=0,priorFwT=0,priorGir=0,priorGirT=0,priorPutts=0;
+  prior.forEach(r=>{if(r.summary){priorFw+=r.summary.fairways||0;priorFwT+=r.summary.fwTotal||9;priorGir+=r.summary.gir||0;priorGirT+=9;priorPutts+=r.summary.putts||0;}});
+  const priorFwPct=priorFwT>0?Math.round(priorFw/priorFwT*100):null;
+  const priorGirPct=priorGirT>0?Math.round(priorGir/priorGirT*100):null;
+  const priorAvgPutts=prior.length>0?+(priorPutts/prior.length).toFixed(1):null;
+  return {
+    fairways:fwPct, fairwaysDelta:priorFwPct!==null&&fwPct!==null?fwPct-priorFwPct:null,
+    gir:girPct, girDelta:priorGirPct!==null&&girPct!==null?girPct-priorGirPct:null,
+    avgPutts, puttsDelta:priorAvgPutts!==null&&avgPutts!==null?+(avgPutts-priorAvgPutts).toFixed(1):null,
+    avgScore, hdcpTrend:state.hdcpHistory.length>1?(+(state.hdcpHistory[state.hdcpHistory.length-1]-state.hdcpHistory[0]).toFixed(1)):0
+  };
+}
+
+function buildCaddieMemory(){
+  // rebuild from all rounds
+  const mem={};
+  state.rounds.forEach(r=>{
+    if(!r.holes) return;
+    r.holes.forEach((h,i)=>{
+      if(!h||!h.club) return;
+      if(!mem[i]) mem[i]=[];
+      mem[i].push({club:h.club,result:h.result,score:h.score,date:r.date});
+    });
+  });
+  state.caddieMem=mem;
+}
+
+function getCaddieAdvice(holeIdx){
+  const mem=state.caddieMem[holeIdx];
+  if(!mem||mem.length<2) return null;
+  // group by club
+  const byClub={};
+  mem.forEach(m=>{
+    if(!byClub[m.club]) byClub[m.club]={good:0,bad:0,total:0};
+    byClub[m.club].total++;
+    if(m.result==='good'||m.result==='okay') byClub[m.club].good++;
+    else byClub[m.club].bad++;
+  });
+  // find best and worst club
+  let best=null,worst=null,bestRate=0,worstRate=1;
+  Object.entries(byClub).forEach(([club,d])=>{
+    if(d.total<1) return;
+    const rate=d.good/d.total;
+    if(rate>bestRate&&d.total>=1){bestRate=rate;best=club;}
+    if(rate<worstRate&&d.total>=1){worstRate=rate;worst=club;}
+  });
+  if(best&&worst&&best!==worst) return `"${worst} has been trouble here (${Math.round(worstRate*100)}% bad). ${best} has worked better — ${Math.round(bestRate*100)}% success rate."`;
+  if(best) return `"${best} has been your best play here — ${Math.round(bestRate*100)}% success over ${byClub[best].total} rounds."`;
+  return null;
 }
 
 // ── NAVIGATION ───────────────────────────────────────────────────────
 function go(screen){
   state.prevScreen=state.screen;
   state.screen=screen;
+  saveState();
   render();
 }
 function back(){go(state.prevScreen);}
 
-// ── MAIN RENDER ──────────────────────────────────────────────────────
 function render(){
-  const app=document.getElementById('app');
   const s=state.screen;
-  if(s==='feed') app.innerHTML=renderFeed();
+  const app=document.getElementById('app');
+  if(s==='onboard') app.innerHTML=renderOnboard();
+  else if(s==='feed') app.innerHTML=renderFeed();
   else if(s==='challenges') app.innerHTML=renderChallenges();
   else if(s==='round') app.innerHTML=renderRound();
+  else if(s==='post-round') app.innerHTML=renderPostRound();
   else if(s==='network') app.innerHTML=renderNetwork();
   else if(s==='profile') app.innerHTML=renderProfile();
   else if(s==='new-challenge') app.innerHTML=renderNewChallenge();
@@ -155,90 +271,218 @@ function render(){
   else if(s==='player-pick') app.innerHTML=renderPlayerPick();
   else if(s==='host-scoring') app.innerHTML=renderHostScoring();
   else if(s==='note') app.innerHTML=renderNote();
+  else if(s==='skins-live') app.innerHTML=renderSkinsLive();
+  else if(s==='round-request') app.innerHTML=renderRoundRequest();
+  else if(s==='settings') app.innerHTML=renderSettings();
+  else app.innerHTML=renderFeed();
 }
 
-// ── FEED ─────────────────────────────────────────────────────────────
+// ══ ONBOARDING ═══════════════════════════════════════════════════════
+function renderOnboard(){
+  const step=state.onboardStep;
+  const steps=[
+    ()=>`<div style="padding:32px 24px 16px;text-align:center;flex:1;display:flex;flex-direction:column;justify-content:center;">
+      <div style="font-size:48px;margin-bottom:16px;">⛳</div>
+      <div style="font-size:24px;font-weight:500;color:${G.t};margin-bottom:12px;">Welcome to Patton</div>
+      <div style="font-size:14px;color:${G.m};line-height:1.7;margin-bottom:32px;">Golf improvement that's competitive, visible, and social. Compete on progress. Play smarter. Build real relationships on the course.</div>
+      <div onclick="state.onboardStep=1;render()" class="btn bg">Get started →</div>
+    </div>`,
+    ()=>`<div style="padding:24px 20px;flex:1;display:flex;flex-direction:column;gap:16px;">
+      <div style="text-align:center;margin-bottom:8px;"><div style="font-size:18px;font-weight:500;color:${G.t};">What's your game?</div><div style="font-size:13px;color:${G.m};margin-top:4px;">Step 1 of 3 — sets up your challenges and caddie memory</div></div>
+      <div><div style="font-size:12px;color:${G.m};margin-bottom:6px;">Your name</div><input id="ob-name" class="inp" value="${state.onboardName}" placeholder="e.g. John Smith"/></div>
+      <div><div style="font-size:12px;color:${G.m};margin-bottom:6px;">Current handicap</div><input id="ob-hdcp" class="inp" type="number" value="${state.onboardHdcp||state.user.hdcp}" placeholder="e.g. 14.2"/></div>
+      <div style="background:${G.s};border-radius:10px;padding:12px 14px;">
+        <div style="font-size:12px;color:${G.m};margin-bottom:8px;">How often do you play?</div>
+        <div style="display:flex;gap:8px;">${['1–2x/mo','3–4x/mo','5+/mo','Varies'].map(f=>`<div onclick="state.onboardFreq='${f}';render()" style="flex:1;text-align:center;padding:8px 4px;border-radius:10px;font-size:11px;font-weight:500;background:${state.onboardFreq===f?G.gB:G.s2};color:${state.onboardFreq===f?G.gT:G.m};cursor:pointer;">${f}</div>`).join('')}</div>
+      </div>
+      <div onclick="saveOnboard1()" class="btn bg">Continue →</div>
+    </div>`,
+    ()=>`<div style="padding:24px 20px;flex:1;display:flex;flex-direction:column;gap:14px;">
+      <div style="text-align:center;margin-bottom:4px;"><div style="font-size:18px;font-weight:500;color:${G.t};">Invite friends</div><div style="font-size:13px;color:${G.m};margin-top:4px;">Step 2 of 3 — challenges are more fun with rivals</div></div>
+      ${state.friends.map((f,i)=>`<div onclick="toggleObFriend(${i})" style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;background:${(state.obFriends||[]).includes(i)?G.gB:G.s};border:.5px solid ${(state.obFriends||[]).includes(i)?'#639922':G.b};cursor:pointer;">${av(f.name,f.avIdx,34)}<div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${(state.obFriends||[]).includes(i)?G.gT:G.t};">${f.name}</div><div style="font-size:11px;color:${G.m};">Hdcp ${f.hdcp}</div></div><div style="width:22px;height:22px;border-radius:50%;background:${(state.obFriends||[]).includes(i)?G.g:G.s2};display:flex;align-items:center;justify-content:center;font-size:13px;color:#173404;">${(state.obFriends||[]).includes(i)?'✓':''}</div></div>`).join('')}
+      <div onclick="state.onboardStep=3;render()" class="btn bg">Continue →</div>
+      <div onclick="state.onboardStep=3;render()" style="text-align:center;font-size:12px;color:${G.m};cursor:pointer;">Skip for now</div>
+    </div>`,
+    ()=>`<div style="padding:24px 20px;flex:1;display:flex;flex-direction:column;gap:14px;">
+      <div style="text-align:center;margin-bottom:4px;"><div style="font-size:18px;font-weight:500;color:${G.t};">Pick your first challenge</div><div style="font-size:13px;color:${G.m};margin-top:4px;">Step 3 of 3 — start competing immediately</div></div>
+      ${[{id:'hdcp',ic:'📉',l:'Most improved handicap',d:'Biggest drop in 30 days wins'},{id:'putts',ic:'🏌️',l:'Fewest 3-putts',d:'Avg over 5 rounds'},{id:'skins',ic:'💀',l:'Skins this weekend',d:'One round, winner takes all'}].map(c=>`<div onclick="state.obChallenge='${c.id}';render()" style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:10px;background:${state.obChallenge===c.id?G.gB:G.s};border:.5px solid ${state.obChallenge===c.id?'#639922':G.b};cursor:pointer;"><span style="font-size:24px;">${c.ic}</span><div style="flex:1;"><div style="font-size:14px;font-weight:500;color:${state.obChallenge===c.id?G.gT:G.t};">${c.l}</div><div style="font-size:12px;color:${G.m};margin-top:2px;">${c.d}</div></div>${state.obChallenge===c.id?`<span style="color:${G.g};font-size:16px;">✓</span>`:''}</div>`).join('')}
+      <div onclick="finishOnboard()" class="btn bg">Start playing →</div>
+    </div>`
+  ];
+  const dots=`<div style="display:flex;gap:6px;justify-content:center;padding:12px 0;">${[0,1,2,3].map(i=>`<div style="width:6px;height:6px;border-radius:50%;background:${step===i?G.g:'#333331'};"></div>`).join('')}</div>`;
+  return `<div class="scr on" style="background:${G.bg};">${sb()}<div style="flex:1;overflow-y:auto;">${dots}${steps[step]()}</div></div>`;
+}
+function saveOnboard1(){
+  const name=document.getElementById('ob-name')?.value.trim()||state.onboardName;
+  const hdcp=parseFloat(document.getElementById('ob-hdcp')?.value)||state.user.hdcp;
+  state.user.name=name||state.user.name;
+  state.user.hdcp=hdcp;
+  state.hdcpHistory=[...state.hdcpHistory.slice(-8),hdcp];
+  state.onboardStep=2;
+  render();
+}
+function toggleObFriend(i){
+  if(!state.obFriends) state.obFriends=[];
+  state.obFriends=state.obFriends.includes(i)?state.obFriends.filter(x=>x!==i):[...state.obFriends,i];
+  render();
+}
+function finishOnboard(){
+  state.onboarded=true;
+  state.screen='feed';
+  saveState();
+  render();
+}
+
+// ══ FEED ══════════════════════════════════════════════════════════════
 function renderFeed(){
-  const tabs=['Progress','Challenges','Network'];
-  let items='';
-  FEED.forEach(f=>{
-    items+=`<div style="padding:12px 16px;border-bottom:.5px solid ${G.b};">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">${av(f.n,f.a,32)}<div><div style="font-size:13px;font-weight:500;color:${G.t};">${f.n}</div><div style="font-size:11px;color:${G.m};">${f.s}</div></div></div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">${f.pills.map(p=>`<span class="pill" style="background:${p.bg};color:${p.c};">${p.t}</span>`).join('')}</div>
-      <div style="font-size:12px;color:${f.fc};">${f.f}</div></div>`;
+  const stats=computeStats();
+  const hasRounds=state.rounds.length>0;
+  // Reminders that surfaced
+  const reminders=state.feedReminders||[];
+  let reminderHtml='';
+  reminders.forEach((rem,ri)=>{
+    const p=NET_DATA[rem.playerIdx];
+    if(!p) return;
+    reminderHtml+=`<div style="margin:0 16px 8px;border-radius:12px;padding:12px 14px;background:${G.aB};border:.5px solid #854F0B;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">${av(p.n,p.a,32)}<div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${G.aT};">Time to follow up with ${p.n}</div><div style="font-size:11px;color:${G.aD};margin-top:1px;">You played together 2 weeks ago</div></div><div onclick="dismissReminder(${ri})" style="font-size:11px;color:${G.aD};cursor:pointer;">✕</div></div>
+      <div style="display:flex;gap:8px;"><div onclick="openRoundRequest(${rem.playerIdx})" class="btn bg" style="flex:1;padding:8px;">Request round</div><div onclick="dismissReminder(${ri})" class="btn bx" style="flex:1;padding:8px;">Dismiss</div></div>
+    </div>`;
   });
-  return `<div class="screen active" style="height:100vh;">
+
+  // stat cards
+  const statCards=[
+    {label:"Handicap",val:hasRounds?(state.hdcpHistory[state.hdcpHistory.length-1].toFixed(1)):state.user.hdcp.toFixed(1),delta:hasRounds&&stats.hdcpTrend!==0?(stats.hdcpTrend>0?'+':'')+stats.hdcpTrend:null,c:G.g,bg:G.gB},
+    {label:"Fairways",val:hasRounds&&stats.fairways!==null?(stats.fairways+'%'):'--%',delta:hasRounds&&stats.fairwaysDelta!==null?(stats.fairwaysDelta>=0?'+':'')+stats.fairwaysDelta+'%':null,c:G.t,bg:G.s2},
+    {label:"3-putts",val:hasRounds&&stats.avgPutts!==null?stats.avgPutts+'/rnd':'--',delta:hasRounds&&stats.puttsDelta!==null?(stats.puttsDelta<=0?'':'')+stats.puttsDelta:null,c:G.a,bg:G.aB}
+  ];
+
+  // friend activity (mix of real rounds and sample)
+  const friendActivity=[];
+  state.friends.slice(0,3).forEach((f,i)=>{
+    friendActivity.push({
+      n:f.name,a:f.avIdx,
+      sub:`${i===0?'2h ago':'Yesterday'} · Cog Hill`,
+      pills:[{t:'Hdcp '+f.hdcp,bg:G.gB,c:G.gT},{t:i===0?'↑ improving':'3 rounds',bg:G.s2,c:G.m}],
+      foot:i===0?'Gaining on you — watch out':'Consistent this month',
+      fc:i===0?G.r:G.m,
+      reactions:['🔥 Nice round','😤 You\'re going down','⛳ Challenge']
+    });
+  });
+
+  let friendHtml='';
+  friendActivity.forEach((f,fi)=>{
+    friendHtml+=`<div style="padding:12px 16px;border-bottom:.5px solid ${G.b};">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">${av(f.n,f.a,32)}<div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${G.t};">${f.n}</div><div style="font-size:11px;color:${G.m};">${f.sub}</div></div></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">${f.pills.map(p=>`<span class="pill" style="background:${p.bg};color:${p.c};">${p.t}</span>`).join('')}</div>
+      <div style="font-size:12px;color:${f.fc};margin-bottom:10px;">${f.foot}</div>
+      <div style="display:flex;gap:6px;overflow-x:auto;">${f.reactions.map((r,ri)=>`<div onclick="sendReaction(${fi},'${r}')" style="white-space:nowrap;font-size:11px;font-weight:500;padding:5px 10px;border-radius:20px;background:${G.s2};color:${G.t};border:.5px solid ${G.b};cursor:pointer;">${r}</div>`).join('')}</div>
+    </div>`;
+  });
+
+  return `<div class="scr on">
     ${sb()}
     <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 16px 8px;">
       <div style="font-size:20px;font-weight:500;color:${G.t};">Feed</div>
-      <div style="width:30px;height:30px;border-radius:50%;background:${G.gB};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:${G.gT};">AJ</div>
+      ${av(state.user.name,0,30)}
     </div>
-    <div class="tabs">${tabs.map((t,i)=>`<div class="tab${i===state.feedTab?' on':''}" onclick="state.feedTab=${i};render();">${t}</div>`).join('')}</div>
+    <div class="tabs">${['Progress','Challenges','Network'].map((t,i)=>`<div class="tab${state.feedTab===i?' on':''}" onclick="state.feedTab=${i};render();">${t}</div>`).join('')}</div>
     <div class="scroll">
+      ${reminderHtml}
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:12px 16px;">
-        <div style="background:${G.gB};border-radius:10px;padding:10px 10px 8px;"><div style="font-size:20px;font-weight:500;color:${G.g};">-1.8</div><div style="font-size:10px;color:${G.m};margin-top:2px;">Handicap</div></div>
-        <div style="background:${G.s2};border-radius:10px;padding:10px 10px 8px;"><div style="font-size:20px;font-weight:500;color:${G.t};">+12%</div><div style="font-size:10px;color:${G.m};margin-top:2px;">Fairways</div></div>
-        <div style="background:${G.aB};border-radius:10px;padding:10px 10px 8px;"><div style="font-size:20px;font-weight:500;color:${G.a};">-40%</div><div style="font-size:10px;color:${G.m};margin-top:2px;">3-putts</div></div>
+        ${statCards.map(s=>`<div style="background:${s.bg};border-radius:10px;padding:10px 10px 8px;"><div style="font-size:20px;font-weight:500;color:${s.c};">${s.val}</div>${s.delta!==null?`<div style="font-size:10px;color:${s.delta&&parseFloat(s.delta)<0?G.g:G.a};margin-top:1px;">${s.delta}</div>`:''}
+        <div style="font-size:10px;color:${G.m};margin-top:2px;">${s.label}</div></div>`).join('')}
       </div>
+      <div style="margin:0 16px 8px;border-radius:12px;padding:14px;background:${state.aiWeeklySummary?G.gB:G.s};border:.5px solid ${state.aiWeeklySummary?'#639922':G.b};">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${state.aiWeeklySummary?'10px':'0'};">
+          <div><div style="font-size:12px;font-weight:500;color:${state.aiWeeklySummary?G.gT:G.t};">Weekly AI summary</div><div style="font-size:11px;color:${G.m};margin-top:1px;">Powered by Claude</div></div>
+          <div onclick="getWeeklySummary()" style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;background:${state.aiWeeklySummaryLoading?G.s2:G.gB};color:${state.aiWeeklySummaryLoading?G.m:G.gT};cursor:pointer;border:.5px solid ${state.aiWeeklySummaryLoading?G.b:'#639922'};">${state.aiWeeklySummaryLoading?'Thinking...':state.aiWeeklySummary?'Refresh':'Generate →'}</div>
+        </div>
+        ${state.aiWeeklySummary
+          ?`<div style="font-size:13px;color:${G.gT};line-height:1.7;font-style:italic;">"${state.aiWeeklySummary}"</div>`
+          :`<div style="font-size:12px;color:${G.m};">Get a Claude-powered snapshot of your week — progress, challenges, and what to focus on next.</div>`
+        }
+        ${!window.AI?.hasKey()?`<div onclick="go('settings')" style="margin-top:8px;font-size:11px;color:${G.a};cursor:pointer;">⚙ Add Claude API key to unlock →</div>`:''}
+      </div>
+      ${!hasRounds?`<div style="margin:0 16px 12px;border-radius:10px;padding:14px;background:${G.s};border:.5px solid ${G.b};text-align:center;">
+        <div style="font-size:13px;color:${G.t};margin-bottom:8px;">Log your first round to see real stats</div>
+        <div onclick="startRound()" class="btn bg">Start a round →</div>
+      </div>`:''}
       <div onclick="go('challenges')" style="margin:0 16px 8px;border-radius:10px;padding:10px 12px;background:${G.gB};display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
         <div><div style="font-size:12px;font-weight:500;color:${G.gT};">Most improved handicap</div><div style="font-size:11px;color:${G.gD};margin-top:1px;">Oct challenge · 11 days left</div></div>
         <div style="text-align:right;"><div style="font-size:22px;font-weight:500;color:${G.g};">#2</div><div style="font-size:10px;color:${G.gD};">of 12</div></div>
       </div>
       <div onclick="state.chalTab=2;go('challenges')" style="margin:0 16px 12px;border-radius:12px;padding:14px;background:${G.s};border:.5px solid ${G.b};cursor:pointer;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <div style="width:32px;height:32px;border-radius:8px;background:${G.aB};display:flex;align-items:center;justify-content:center;font-size:16px;">🏆</div>
-            <div><div style="font-size:13px;font-weight:500;color:${G.t};">Pick-em tournament</div><div style="font-size:11px;color:${G.m};margin-top:1px;">Pick A·B·C·D — best score wins</div></div>
-          </div>
-          <span style="color:${G.m};">›</span>
+          <div style="display:flex;align-items:center;gap:8px;"><div style="width:32px;height:32px;border-radius:8px;background:${G.aB};display:flex;align-items:center;justify-content:center;font-size:16px;">🏆</div><div><div style="font-size:13px;font-weight:500;color:${G.t};">Pick-em tournament</div><div style="font-size:11px;color:${G.m};margin-top:1px;">Pick A·B·C·D — best score wins</div></div></div><span style="color:${G.m};">›</span>
         </div>
-        <div style="display:flex;gap:6px;">
-          ${Object.entries(TIERS).map(([k,t])=>`<div style="flex:1;border-radius:8px;padding:7px 4px;background:${t.bg};border:.5px solid ${t.br};text-align:center;"><div style="font-size:15px;font-weight:600;color:${t.c};">${k}</div><div style="font-size:9px;color:${t.c};opacity:.8;margin-top:1px;">${t.d.split(' ').slice(0,2).join(' ')}</div></div>`).join('')}
-        </div>
-        <div style="margin-top:10px;border-top:.5px solid ${G.b};padding-top:8px;display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:11px;color:${G.m};">${state.tournament?state.tournament.name+' · '+state.players.length+' players':'No active tournament'}</span>
-          <span class="pill" style="background:${state.tournament?(state.scoring?G.rB:G.gB):G.s2};color:${state.tournament?(state.scoring?G.r:G.g):G.m};">${state.tournament?(state.scoring?'Live':'Lobby'):'Start one →'}</span>
-        </div>
+        <div style="display:flex;gap:6px;">${Object.entries(TIERS).map(([k,t])=>`<div style="flex:1;border-radius:8px;padding:7px 4px;background:${t.bg};border:.5px solid ${t.br};text-align:center;"><div style="font-size:15px;font-weight:600;color:${t.c};">${k}</div><div style="font-size:9px;color:${t.c};opacity:.8;margin-top:1px;">${t.d.split(' ').slice(0,2).join(' ')}</div></div>`).join('')}</div>
       </div>
-      ${items}
+      <div class="sh">Friends' activity</div>
+      ${friendHtml}
       <div style="height:16px;"></div>
     </div>
-    ${nav('feed')}
+    ${navHtml('feed')}
   </div>`;
 }
+function sendReaction(fi,reaction){
+  const p=state.friends[fi];
+  showToast(`Sent "${reaction}" to ${p.name}`);
+}
+function dismissReminder(ri){
+  state.feedReminders.splice(ri,1);
+  saveState();render();
+}
+function showToast(msg){
+  const t=document.createElement('div');
+  t.style.cssText=`position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1C1C1A;color:#F1EFE8;padding:10px 20px;border-radius:20px;font-size:13px;z-index:999;border:.5px solid #333331;`;
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2000);
+}
 
-// ── CHALLENGES ───────────────────────────────────────────────────────
+// ══ CHALLENGES ════════════════════════════════════════════════════════
 function renderChallenges(){
   const ct=state.chalTab;
   let body='';
   if(ct===0){
-    body+=`<div class="sh">Active</div>
-      <div style="margin:0 16px 8px;border-radius:12px;padding:12px 14px;background:#412402;border:.5px solid #854F0B;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;"><div><div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;"><span class="pill" style="background:#854F0B;color:#FAC775;">💀 Skins</span><span style="font-size:11px;color:#BA7517;">18 holes · carry</span></div><div style="font-size:14px;font-weight:500;color:#FAC775;">Saturday at Cog Hill</div><div style="font-size:11px;color:#BA7517;margin-top:2px;">Marcus · Sarah · Dan · You · 3 days away</div></div><div style="text-align:right;"><div style="font-size:20px;font-weight:500;color:${G.a};">4</div><div style="font-size:10px;color:#BA7517;">players</div></div></div>
-        <div style="border-top:.5px solid #854F0B;padding-top:8px;font-size:11px;color:#BA7517;line-height:1.6;">Each hole = 1 skin. Ties carry. Most skins wins — loser buys the round.</div>
-      </div>`;
-    CHAL.forEach(c=>{
-      body+=`<div style="margin:0 16px 8px;border-radius:12px;padding:12px 14px;background:${c.bg};">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;"><div><div style="font-size:14px;font-weight:500;color:${c.tc};">${c.title}</div><div style="font-size:11px;color:${c.sc};margin-top:2px;">${c.sub}</div></div><div style="text-align:right;"><div style="font-size:20px;font-weight:500;color:${c.pc};">#${c.rank}</div><div style="font-size:10px;color:${c.sc};">of ${c.of}</div></div></div>
-        <div style="height:5px;border-radius:3px;overflow:hidden;background:${c.pb};margin-bottom:6px;"><div style="height:100%;width:${c.pct}%;background:${c.pc};border-radius:3px;"></div></div>
-        <div style="display:flex;justify-content:space-between;"><span style="font-size:11px;color:${c.sc};">${c.you}</span><span style="font-size:11px;color:${c.sc};">${c.lead}</span></div>
-      </div>`;
+    body+=`<div class="sh">Active</div>`;
+    state.challenges.forEach((c,ci)=>{
+      if(c.type==='skins'){
+        body+=`<div style="margin:0 16px 8px;border-radius:12px;padding:12px 14px;background:#412402;border:.5px solid #854F0B;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+            <div><div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;"><span class="pill" style="background:#854F0B;color:#FAC775;">💀 Skins</span><span style="font-size:11px;color:#BA7517;">${c.skinsData.holes} holes · ${c.skinsData.carry?'carry':'no carry'}</span></div>
+            <div style="font-size:14px;font-weight:500;color:#FAC775;">${c.title.replace('Skins — ','')}</div>
+            <div style="font-size:11px;color:#BA7517;margin-top:2px;">${c.sub}</div></div>
+            <div style="text-align:right;"><div style="font-size:20px;font-weight:500;color:${G.a};">${Object.values(c.skinsData.skins||{}).reduce((a,b)=>a+b,0)}</div><div style="font-size:10px;color:#BA7517;">skins played</div></div>
+          </div>
+          <div style="border-top:.5px solid #854F0B;padding-top:8px;display:flex;gap:8px;">
+            <div onclick="openSkinsScoring(${ci})" class="btn ba" style="flex:1;padding:8px;">Score live →</div>
+            <div onclick="state.activeSkins=${ci};go('skins-live')" class="btn bx" style="flex:1;padding:8px;">View standings</div>
+          </div>
+        </div>`;
+      } else {
+        body+=`<div style="margin:0 16px 8px;border-radius:12px;padding:12px 14px;background:${c.bg};">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;"><div><div style="font-size:14px;font-weight:500;color:${c.tc};">${c.title}</div><div style="font-size:11px;color:${c.sc};margin-top:2px;">${c.sub}</div></div><div style="text-align:right;"><div style="font-size:20px;font-weight:500;color:${c.pc};">#${c.rank}</div><div style="font-size:10px;color:${c.sc};">of ${c.of}</div></div></div>
+          <div style="height:5px;border-radius:3px;overflow:hidden;background:${c.pb};margin-bottom:6px;"><div style="height:100%;width:${c.pct}%;background:${c.pc};border-radius:3px;"></div></div>
+          <div style="display:flex;justify-content:space-between;"><span style="font-size:11px;color:${c.sc};">${c.you}</span><span style="font-size:11px;color:${c.sc};">${c.lead}</span></div>
+        </div>`;
+      }
     });
-    body+=`<div style="padding:0 16px 20px;margin-top:4px;"><div class="btn bg" onclick="go('new-challenge')">+ Create new challenge</div></div>`;
+    body+=`<div style="padding:0 16px 20px;margin-top:4px;"><div onclick="go('new-challenge')" class="btn bg">+ Create new challenge</div></div>`;
   }
   else if(ct===1){
     body+=`<div class="card" style="margin-top:12px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">${av('Adrian J',0,28)}<div style="flex:1;font-size:13px;font-weight:500;color:${G.t};">You</div><div style="font-size:13px;font-weight:500;color:${G.g};">-1.8 hdcp</div></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">${av(state.user.name,0,28)}<div style="flex:1;font-size:13px;font-weight:500;color:${G.t};">You</div><div style="font-size:13px;font-weight:500;color:${G.g};">${state.user.hdcp.toFixed(1)} hdcp</div></div>
       <div style="text-align:center;font-size:10px;color:${G.m};padding:4px 0;">vs</div>
-      <div style="display:flex;align-items:center;gap:8px;">${av('Marcus T',1,28)}<div style="flex:1;font-size:13px;font-weight:500;color:${G.t};">Marcus T.</div><div style="font-size:13px;font-weight:500;color:${G.m};">-1.1 hdcp</div></div>
+      <div style="display:flex;align-items:center;gap:8px;">${av('Marcus T',1,28)}<div style="flex:1;font-size:13px;font-weight:500;color:${G.t};">Marcus T.</div><div style="font-size:13px;font-weight:500;color:${G.m};">11.4 hdcp</div></div>
       <div style="margin-top:8px;font-size:11px;color:${G.gD};">You're winning · 14 days left · Loser buys the round</div>
     </div>
-    <div style="padding:0 16px;"><div class="btn bg" onclick="go('new-challenge')">+ Challenge someone</div></div>`;
+    <div style="padding:0 16px;"><div onclick="go('new-challenge')" class="btn bg">+ Challenge someone</div></div>`;
   }
   else{
     body+=renderTournamentTab();
   }
-  return `<div class="screen active">
+  return `<div class="scr on">
     ${sb()}
     <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 16px 8px;">
       <div style="font-size:20px;font-weight:500;color:${G.t};">Challenges</div>
@@ -246,191 +490,534 @@ function renderChallenges(){
     </div>
     <div class="tabs">${['My challenges','Duels','Tournament'].map((t,i)=>`<div class="tab${ct===i?' on':''}" onclick="state.chalTab=${i};render();">${t}</div>`).join('')}</div>
     <div class="scroll">${body}<div style="height:16px;"></div></div>
-    ${nav('challenges')}
+    ${navHtml('challenges')}
   </div>`;
 }
 
-function renderTournamentTab(){
-  if(!state.tournament){
-    return `<div style="padding:16px;display:flex;flex-direction:column;gap:10px;">
-      <div style="border-radius:12px;padding:16px;background:${G.s};border:.5px solid ${G.b};">
-        <div style="font-size:14px;font-weight:500;color:${G.t};margin-bottom:4px;">Pick-em tournament</div>
-        <div style="font-size:12px;color:${G.m};line-height:1.7;margin-bottom:12px;">Create a tournament and share the code. Each player enters their own name, picks their skill tier (A/B/C/D), then builds a lineup of one player from each tier. Best combined score wins.</div>
-        <div class="btn bg" onclick="go('host-setup')">Create tournament →</div>
-      </div>
-      <div style="display:flex;gap:8px;">${Object.entries(TIERS).map(([k,t])=>`<div style="flex:1;border-radius:10px;padding:10px 8px;background:${t.bg};border:.5px solid ${t.br};text-align:center;"><div style="font-size:18px;font-weight:600;color:${t.c};">${k}</div><div style="font-size:9px;color:${t.c};opacity:.8;margin-top:2px;">${t.d.split(' ').slice(0,2).join(' ')}</div></div>`).join('')}</div>
-    </div>`;
-  }
-  const lb=calcLB();
-  return `
-    <div style="margin:12px 16px;border-radius:12px;padding:14px;background:${state.scoring?G.rB:G.gB};">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-        <div style="font-size:15px;font-weight:500;color:${state.scoring?G.r:G.gT};">${state.tournament.name}</div>
-        <span class="pill" style="background:${state.scoring?'#300':'#173404'};color:${state.scoring?G.r:G.g};">${state.scoring?'Live':'Lobby'}</span>
-      </div>
-      <div style="font-size:11px;color:${state.scoring?G.r:G.gD};">${state.players.length} players · Lock: ${state.tournament.lock} · ${state.tournament.stake}</div>
-    </div>
-    ${!state.scoring?`<div style="padding:0 16px;display:flex;flex-direction:column;gap:8px;margin-bottom:8px;">
-      <div class="btn bb" onclick="go('add-player')">+ Register as a player</div>
-      <div class="btn bx" onclick="go('host-lobby')">Host lobby &amp; lock picks</div>
-    </div>`:''}
-    ${state.scoring?`<div style="padding:0 16px 8px;"><div class="btn br" onclick="go('host-scoring')">Enter scores →</div></div>`:''}
-    ${state.players.length>0?`<div class="sh">Field (${state.players.length})</div>
-      ${state.players.map(p=>`<div onclick="${!state.locked?`openPick(${p.id})`:'void 0'}" style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:.5px solid ${G.b};cursor:${state.locked?'default':'pointer'};">${av(p.name,p.avIdx,34)}<div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${G.t};">${p.name}</div><div style="font-size:11px;color:${Object.values(p.picks).filter(Boolean).length===4?G.g:G.m};margin-top:1px;">${Object.values(p.picks).filter(Boolean).length===4?'Lineup set ✓':state.locked?'No lineup':'Tap to build lineup'}</div></div>${tb(p.tier)}</div>`).join('')}`:''}
-    ${lb.length>0?`<div class="sh">${state.scoring?'Live leaderboard':'Projected standings'}</div>
-      ${lb.map((e,i)=>{const iF=i===0,iL=i===lb.length-1&&lb.length>1;return `<div style="margin:0 16px 6px;border-radius:10px;padding:11px 14px;background:${iF?G.rB:G.s};border:.5px solid ${iF?G.rB:G.b};display:flex;align-items:center;gap:8px;"><div style="font-size:14px;font-weight:500;color:${iF?G.r:G.m};width:24px;">#${i+1}</div>${av(e.name,e.avIdx,28)}<div style="flex:1;margin-left:4px;font-size:13px;font-weight:500;color:${iF?G.r:G.t};">${e.name}</div><div style="font-size:14px;font-weight:500;color:${iF?G.r:iL?G.a:G.g};">${e.total>0?'+':''}${e.total}</div></div>`;}).join('')}
-      ${lb.length>1?`<div style="margin:0 16px 8px;border-radius:10px;padding:10px 14px;background:${G.aB};"><div style="font-size:12px;color:${G.aT};">⚠ ${lb[lb.length-1].name} on the hook — ${state.tournament.stake}</div></div>`:''}`:''
-    }`;
+// ── SKINS LIVE SCORING ───────────────────────────────────────────────
+function openSkinsScoring(ci){
+  state.activeSkins=ci;
+  go('skins-live');
 }
 
-// ── ROUND ─────────────────────────────────────────────────────────────
-function renderRound(){
-  const h=HOLES[state.hole];
-  let strip='';
-  HOLES.forEach((_,i)=>{
-    const r=state.holeLog[i];
-    const bg=i===state.hole?G.g:r==='good'?G.gB:r==='okay'?G.aB:r==='disaster'?G.rB:G.s2;
-    const c=i===state.hole?'#173404':r==='good'?G.gT:r==='okay'?G.aT:r==='disaster'?G.r:G.m;
-    strip+=`<div onclick="state.hole=${i};render()" style="min-width:36px;height:36px;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:${c};flex-shrink:0;cursor:pointer;">${i+1}</div>`;
-  });
-  let pattern='';
-  if(h.pr.length>0){
-    pattern=`<div class="sh">Your pattern — hole ${state.hole+1}</div><div style="margin:0 16px 12px;border-radius:10px;overflow:hidden;border:.5px solid ${G.b};">
-      ${h.pr.map((r,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:${i<h.pr.length-1?`.5px solid ${G.s2}`:'none'};background:${G.s};"><span style="font-size:12px;color:${G.m};">${r.d}</span><span class="pill" style="background:${r.g?G.gB:G.rB};color:${r.g?G.gT:G.r};">${r.r}</span></div>`).join('')}
+function renderSkinsLive(){
+  const ci=state.activeSkins;
+  const ch=state.challenges[ci];
+  if(!ch||ch.type!=='skins') return renderChallenges();
+  const sd=ch.skinsData;
+  if(!sd.scores) sd.scores={};
+  if(!sd.skins) sd.skins={};
+
+  // compute skins
+  const computedSkins={};
+  sd.players.forEach(p=>computedSkins[p]=0);
+  let carry=0;
+  for(let h=0;h<sd.holes;h++){
+    const hScores=sd.scores[h]||{};
+    const vals=sd.players.map(p=>({p,s:hScores[p]!==undefined?hScores[p]:null})).filter(x=>x.s!==null);
+    if(vals.length<sd.players.length){carry++;continue;}
+    const min=Math.min(...vals.map(x=>x.s));
+    const winners=vals.filter(x=>x.s===min);
+    if(winners.length===1){computedSkins[winners[0].p]+=(sd.carry?carry+1:1);carry=0;}
+    else if(sd.carry){carry++;}
+    else{carry=0;}
+  }
+
+  let holeRows='';
+  for(let h=0;h<Math.min(sd.holes,9);h++){
+    const hScores=sd.scores[h]||{};
+    const vals=sd.players.map(p=>({p,s:hScores[p]!==undefined?hScores[p]:null}));
+    const allFilled=vals.every(x=>x.s!==null);
+    let winner='';
+    if(allFilled){
+      const min=Math.min(...vals.map(x=>x.s));
+      const wins=vals.filter(x=>x.s===min);
+      winner=wins.length===1?wins[0].p:'Carry';
+    }
+    holeRows+=`<div style="border-bottom:.5px solid ${G.s2};padding:10px 16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="font-size:13px;font-weight:500;color:${G.t};">Hole ${h+1}</div>
+        ${winner?`<span class="pill" style="background:${winner==='Carry'?G.aB:G.gB};color:${winner==='Carry'?G.aT:G.gT};">${winner==='Carry'?'Carried →':winner+' wins'}</span>`:'<span style="font-size:11px;color:'+G.m+';">Pending</span>'}
+      </div>
+      <div style="display:flex;gap:8px;">
+        ${sd.players.map(p=>`<div style="flex:1;text-align:center;">
+          <div style="font-size:10px;color:${G.m};margin-bottom:4px;">${p.split(' ')[0]}</div>
+          <input oninput="updateSkinsScore(${ci},${h},'${p}',this.value)" value="${hScores[p]!==undefined?hScores[p]:''}" placeholder="-" style="width:100%;border-radius:8px;padding:6px 4px;font-size:14px;font-weight:500;background:${G.s2};border:.5px solid ${G.b};color:${G.t};text-align:center;outline:none;font-family:inherit;"/>
+        </div>`).join('')}
+      </div>
     </div>`;
   }
-  return `<div class="screen active">
+
+  return `<div class="scr on">
+    ${sb()}${topbar('Skins — Live','back()')}
+    <div class="scroll">
+      <div style="margin:10px 16px;border-radius:10px;padding:10px 14px;background:${G.aB};display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:13px;font-weight:500;color:${G.aT};">${ch.title.replace('Skins — ','')}</span>
+        <span style="font-size:11px;color:${G.aD};">${sd.carry?'Carry on ties':'No carry'}</span>
+      </div>
+      <div class="sh">Standings</div>
+      <div style="margin:0 16px 10px;border-radius:10px;overflow:hidden;border:.5px solid ${G.b};">
+        ${sd.players.map((p,i)=>`<div style="display:flex;align-items:center;padding:10px 14px;border-bottom:${i<sd.players.length-1?`.5px solid ${G.s2}`:'none'};background:${computedSkins[p]===Math.max(...Object.values(computedSkins))?G.gB:G.s};">
+          ${av(p,i,28)}<div style="flex:1;margin-left:8px;font-size:13px;font-weight:500;color:${computedSkins[p]===Math.max(...Object.values(computedSkins))?G.gT:G.t};">${p}</div>
+          <div style="font-size:18px;font-weight:500;color:${computedSkins[p]===Math.max(...Object.values(computedSkins))?G.g:G.m};">${computedSkins[p]} 💀</div>
+        </div>`).join('')}
+      </div>
+      <div class="sh">Enter scores by hole</div>
+      ${holeRows}
+      <div style="height:16px;"></div>
+    </div>
+    ${navHtml('challenges')}
+  </div>`;
+}
+function updateSkinsScore(ci,hole,player,val){
+  const n=parseInt(val);
+  if(!state.challenges[ci].skinsData.scores) state.challenges[ci].skinsData.scores={};
+  if(!state.challenges[ci].skinsData.scores[hole]) state.challenges[ci].skinsData.scores[hole]={};
+  if(!isNaN(n)) state.challenges[ci].skinsData.scores[hole][player]=n;
+  else delete state.challenges[ci].skinsData.scores[hole][player];
+  saveState();
+  // partial re-render of standings only
+  const app=document.getElementById('app');
+  if(app) setTimeout(()=>{if(state.screen==='skins-live') render();},300);
+}
+
+// ══ ROUND ══════════════════════════════════════════════════════════════
+function startRound(){
+  state.currentRound={id:Date.now(),date:new Date().toLocaleDateString(),course:"Cog Hill",holes:Array(9).fill(null)};
+  state.currentHole=0;
+  state.holeLog={};
+  buildCaddieMemory();
+  go('round');
+}
+
+function renderRound(){
+  if(!state.currentRound) return `<div class="scr on">${sb()}<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:16px;"><div style="font-size:14px;color:${G.m};text-align:center;">No round in progress.</div><div onclick="startRound()" class="btn bg">Start a round</div></div>${navHtml('round')}</div>`;
+  const h=HOLES_DEF[state.currentHole];
+  const log=state.holeLog[state.currentHole]||{};
+  const caddieAdv=getCaddieAdvice(state.currentHole);
+  const mem=state.caddieMem[state.currentHole]||[];
+  const aiAdv=(state.aiAdvice||{})[state.currentHole];
+
+  let strip='';
+  HOLES_DEF.forEach((_,i)=>{
+    const r=state.holeLog[i];
+    const bg=i===state.currentHole?G.g:r?{good:G.gB,okay:G.aB,disaster:G.rB}[r.result]||G.s2:G.s2;
+    const c=i===state.currentHole?'#173404':r?{good:G.gT,okay:G.aT,disaster:G.r}[r.result]||G.m:G.m;
+    strip+=`<div onclick="state.currentHole=${i};render()" style="min-width:36px;height:36px;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:${c};flex-shrink:0;cursor:pointer;">${i+1}</div>`;
+  });
+
+  // club selector
+  const clubs='';
+  return `<div class="scr on">
     ${sb()}
     <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 16px 10px;border-bottom:.5px solid ${G.b};flex-shrink:0;">
-      <div><div style="font-size:11px;color:${G.m};">Cog Hill — Round in progress</div><div style="font-size:20px;font-weight:500;color:${G.t};margin-top:2px;">Hole ${state.hole+1}</div></div>
+      <div><div style="font-size:11px;color:${G.m};">${state.currentRound.course} — Round in progress</div><div style="font-size:20px;font-weight:500;color:${G.t};margin-top:2px;">Hole ${state.currentHole+1}</div></div>
       <div style="text-align:right;"><div style="font-size:11px;color:${G.m};">Par ${h.p} · ${h.y} yds</div><div style="font-size:12px;color:${G.a};margin-top:2px;">${h.d}</div></div>
     </div>
     <div class="scroll">
       <div style="display:flex;gap:6px;padding:10px 16px;overflow-x:auto;">${strip}</div>
-      <div style="margin:0 16px 12px;border-radius:0 12px 12px 0;padding:14px;background:${h.has?G.gB:G.s2};border-left:3px solid ${h.has?G.g:G.b};">
-        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:${h.has?G.gD:G.m};margin-bottom:4px;">Caddie memory</div>
-        <div style="font-size:14px;font-weight:500;color:${h.has?G.gT:G.m};line-height:1.5;">"${h.m}"</div>
-        ${h.has?`<div style="font-size:11px;color:${G.gD};margin-top:6px;">Based on your last rounds at Cog Hill</div>`:''}
+      <div style="margin:0 16px 10px;border-radius:12px;padding:14px;background:${aiAdv?G.gB:G.s};border:.5px solid ${aiAdv?'#639922':G.b};">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:${aiAdv||caddieAdv?'10px':'0'};">
+          <div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:${G.gD};margin-bottom:2px;">AI Caddie</div>
+            <div style="font-size:11px;color:${G.m};">Powered by Claude</div>
+          </div>
+          <div onclick="askAICaddie(${state.currentHole})" style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;background:${state.aiLoading?G.s2:G.gB};color:${state.aiLoading?G.m:G.gT};cursor:pointer;flex-shrink:0;border:.5px solid ${state.aiLoading?G.b:'#639922'};">
+            ${state.aiLoading?'Thinking...':aiAdv?'Refresh':'Ask AI →'}
+          </div>
+        </div>
+        ${aiAdv
+          ?`<div style="font-size:14px;color:${G.gT};line-height:1.6;font-style:italic;">"${aiAdv}"</div>`
+          :caddieAdv
+            ?`<div style="font-size:13px;color:${G.m};line-height:1.5;padding-left:10px;border-left:2px solid ${G.b};">${caddieAdv}</div><div style="font-size:11px;color:${G.m};margin-top:6px;">Based on ${mem.length} round${mem.length>1?'s':''} — tap Ask AI for smarter advice</div>`
+            :`<div style="font-size:13px;color:${G.m};">Tap "Ask AI" for a club recommendation and tip based on your history on this hole.</div>`
+        }
+        ${!window.AI?.hasKey()?`<div onclick="go('settings')" style="margin-top:8px;font-size:11px;color:${G.a};cursor:pointer;">⚙ Add Claude API key to unlock AI →</div>`:''}
       </div>
-      ${pattern}
-      <div class="sh">Log this hole</div>
+      ${mem.length>0?`<div class="sh">Your pattern — hole ${state.currentHole+1}</div>
+        <div style="margin:0 16px 12px;border-radius:10px;overflow:hidden;border:.5px solid ${G.b};">
+          ${mem.slice(-4).map((m,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:${i<Math.min(mem.length,4)-1?`.5px solid ${G.s2}`:'none'};background:${G.s};"><span style="font-size:12px;color:${G.m};">${m.date} · ${m.club}</span><span class="pill" style="background:${m.result==='good'||m.result==='okay'?G.gB:G.rB};color:${m.result==='good'||m.result==='okay'?G.gT:G.r};">${m.result}</span></div>`).join('')}
+        </div>`:''}
+      <div class="sh">Pick your club</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 12px;">
+        ${CLUBS.map(c=>`<div onclick="selectClub('${c}')" style="padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;background:${log.club===c?G.gB:G.s2};color:${log.club===c?G.gT:G.m};border:.5px solid ${log.club===c?'#639922':G.b};cursor:pointer;">${c}</div>`).join('')}
+      </div>
+      <div class="sh">Log result</div>
       <div style="display:flex;gap:8px;margin:0 16px 20px;">
-        <div onclick="state.holeLog[${state.hole}]='good';state.hole=Math.min(8,state.hole+1);render()" style="flex:1;text-align:center;padding:12px 4px;border-radius:12px;background:${G.gB};font-size:13px;font-weight:500;color:${G.gT};cursor:pointer;">Good</div>
-        <div onclick="state.holeLog[${state.hole}]='okay';state.hole=Math.min(8,state.hole+1);render()" style="flex:1;text-align:center;padding:12px 4px;border-radius:12px;background:${G.aB};font-size:13px;font-weight:500;color:${G.aT};cursor:pointer;">Okay</div>
-        <div onclick="state.holeLog[${state.hole}]='disaster';state.hole=Math.min(8,state.hole+1);render()" style="flex:1;text-align:center;padding:12px 4px;border-radius:12px;background:${G.rB};font-size:13px;font-weight:500;color:${G.r};cursor:pointer;">Disaster</div>
+        <div onclick="logHole('good')" style="flex:1;text-align:center;padding:12px 4px;border-radius:12px;background:${log.result==='good'?G.g:G.gB};font-size:13px;font-weight:500;color:${log.result==='good'?'#173404':G.gT};cursor:pointer;">Good</div>
+        <div onclick="logHole('okay')" style="flex:1;text-align:center;padding:12px 4px;border-radius:12px;background:${log.result==='okay'?G.a:G.aB};font-size:13px;font-weight:500;color:${log.result==='okay'?'#173404':G.aT};cursor:pointer;">Okay</div>
+        <div onclick="logHole('disaster')" style="flex:1;text-align:center;padding:12px 4px;border-radius:12px;background:${log.result==='disaster'?G.r:G.rB};font-size:13px;font-weight:500;color:${G.r};cursor:pointer;">Disaster</div>
       </div>
+      ${Object.keys(state.holeLog).length===9?`<div style="padding:0 16px 16px;"><div onclick="finishRound()" class="btn bg">Finish round →</div></div>`:''}
     </div>
-    ${nav('round')}
+    ${navHtml('round')}
   </div>`;
 }
 
-// ── NETWORK ──────────────────────────────────────────────────────────
+function selectClub(club){
+  if(!state.holeLog[state.currentHole]) state.holeLog[state.currentHole]={};
+  state.holeLog[state.currentHole].club=club;
+  saveState();render();
+}
+function logHole(result){
+  if(!state.holeLog[state.currentHole]) state.holeLog[state.currentHole]={};
+  state.holeLog[state.currentHole].result=result;
+  state.currentHole=Math.min(8,state.currentHole+1);
+  saveState();render();
+}
+function finishRound(){
+  // Build round summary
+  const log=state.holeLog;
+  let fw=0,gir=0,putts=0,goods=0;
+  let fwTotal=0,girTotal=0;
+  Object.values(log).forEach(h=>{
+    if(h.result==='good'){goods++;fw++;gir++;}
+    if(h.result==='okay'){fw++;gir++;}
+    fwTotal++;girTotal++;
+    if(h.result==='disaster') putts++;
+  });
+  const score=36+Object.values(log).reduce((s,h)=>s+(h.result==='good'?0:h.result==='okay'?1:2),0);
+  state.currentRound.holes=Object.entries(log).map(([i,h])=>({...h,holeIdx:parseInt(i)}));
+  state.currentRound.summary={fairways:fw,fwTotal,gir,girTotal,putts,score};
+  state.rounds.push({...state.currentRound});
+  // update hdcp slightly
+  if(goods>4) state.hdcpHistory.push(+(state.user.hdcp-0.1).toFixed(1));
+  else state.hdcpHistory.push(+(state.user.hdcp+0.1).toFixed(1));
+  state.user.hdcp=state.hdcpHistory[state.hdcpHistory.length-1];
+  buildCaddieMemory();
+  state.currentRound=null;
+  state.holeLog={};
+  state.aiRecap=null;
+  state.aiAdvice={};
+  saveState();
+  go('post-round');
+  if(window.AI?.hasKey()) setTimeout(()=>getAIRecap(),800);
+}
+
+// ── POST ROUND SUMMARY ───────────────────────────────────────────────
+function renderPostRound(){
+  const round=state.rounds[state.rounds.length-1];
+  if(!round) return renderFeed();
+  const s=round.summary;
+  const fwPct=s.fwTotal>0?Math.round(s.fairways/s.fwTotal*100):0;
+  const girPct=s.girTotal>0?Math.round(s.gir/s.girTotal*100):0;
+  const newHdcp=state.hdcpHistory[state.hdcpHistory.length-1];
+  const prevHdcp=state.hdcpHistory.length>1?state.hdcpHistory[state.hdcpHistory.length-2]:state.user.hdcp;
+  const hdcpDelta=+(newHdcp-prevHdcp).toFixed(1);
+
+  // what the round confirmed/changed
+  const insights=[];
+  Object.entries(state.holeLog).forEach(([hi,h])=>{
+    if(!h.club) return;
+    const prev=(state.caddieMem[parseInt(hi)]||[]).slice(0,-1);
+    if(prev.length>=2){
+      const sameClub=prev.filter(p=>p.club===h.club);
+      if(h.result==='good'&&sameClub.length>=1) insights.push(`✅ ${h.club} on hole ${parseInt(hi)+1} — pattern confirmed`);
+      if(h.result==='disaster'&&sameClub.filter(p=>p.result==='disaster').length>=1) insights.push(`⚠️ ${h.club} on hole ${parseInt(hi)+1} — trouble again`);
+    }
+  });
+  if(insights.length===0) insights.push(`📊 ${Object.keys(state.holeLog).length} holes logged — caddie memory is building`);
+
+  return `<div class="scr on">
+    ${sb()}${topbar('Round complete',false,'<span onclick="go(\'feed\')" style="color:'+G.gT+';">Done</span>')}
+    <div class="scroll">
+      <div style="text-align:center;padding:20px 16px 12px;">
+        <div style="font-size:52px;font-weight:500;color:${G.g};">${s.score}</div>
+        <div style="font-size:13px;color:${G.m};margin-top:4px;">${round.course} · ${round.date}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 16px 12px;">
+        <div style="background:${G.gB};border-radius:10px;padding:10px 12px;"><div style="font-size:22px;font-weight:500;color:${G.g};">${newHdcp.toFixed(1)}</div><div style="font-size:11px;color:${G.gD};margin-top:2px;">New handicap ${hdcpDelta<=0?'(↓'+Math.abs(hdcpDelta)+')':'(↑'+hdcpDelta+')'}</div></div>
+        <div style="background:${G.s2};border-radius:10px;padding:10px 12px;"><div style="font-size:22px;font-weight:500;color:${G.t};">${fwPct}%</div><div style="font-size:11px;color:${G.m};margin-top:2px;">Fairways hit</div></div>
+        <div style="background:${G.s2};border-radius:10px;padding:10px 12px;"><div style="font-size:22px;font-weight:500;color:${G.t};">${girPct}%</div><div style="font-size:11px;color:${G.m};margin-top:2px;">GIR</div></div>
+        <div style="background:${G.s2};border-radius:10px;padding:10px 12px;"><div style="font-size:22px;font-weight:500;color:${G.a};">${s.putts}</div><div style="font-size:11px;color:${G.m};margin-top:2px;">3-putt holes</div></div>
+      </div>
+      <div class="sh">What this round told you</div>
+      ${insights.map(ins=>`<div style="margin:0 16px 6px;border-radius:10px;padding:10px 14px;background:${G.s};"><div style="font-size:13px;color:${G.t};line-height:1.5;">${ins}</div></div>`).join('')}
+      <div class="sh">AI Coach recap</div>
+      <div style="margin:0 16px 12px;border-radius:12px;padding:14px;background:${state.aiRecap?G.gB:G.s};border:.5px solid ${state.aiRecap?'#639922':G.b};">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${state.aiRecap?'10px':'0'};">
+          <div style="font-size:11px;color:${state.aiRecap?G.gD:G.m};">Powered by Claude</div>
+          <div onclick="getAIRecap()" style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;background:${state.aiRecapLoading?G.s2:G.gB};color:${state.aiRecapLoading?G.m:G.gT};cursor:pointer;border:.5px solid ${state.aiRecapLoading?G.b:'#639922'};">
+            ${state.aiRecapLoading?'Thinking...':state.aiRecap?'Refresh':'Generate →'}
+          </div>
+        </div>
+        ${state.aiRecap
+          ?`<div style="font-size:13px;color:${G.gT};line-height:1.8;">${state.aiRecap.split('\n').filter(Boolean).map(l=>`<div style="margin-bottom:4px;">${l}</div>`).join('')}</div>`
+          :`<div style="font-size:13px;color:${G.m};">Get a personalized coaching breakdown — what worked, what to fix, and one drill for next round.</div>`
+        }
+        ${!window.AI?.hasKey()?`<div onclick="go('settings')" style="margin-top:8px;font-size:11px;color:${G.a};cursor:pointer;">⚙ Add Claude API key to unlock →</div>`:''}
+      </div>
+      <div style="padding:12px 16px 20px;display:flex;gap:8px;">
+        <div onclick="go('feed')" class="btn bg" style="flex:1;">Share to feed</div>
+        <div onclick="go('round')" class="btn bx" style="flex:1;">Play again</div>
+      </div>
+    </div>
+    ${navHtml('round')}
+  </div>`;
+}
+
+// ══ NETWORK ════════════════════════════════════════════════════════════
 function renderNetwork(){
   const filters=["This week","SaaS","Finance","Real estate","10–18 hdcp"];
   let cards='';
-  NET.forEach((p,i)=>{
+  NET_DATA.forEach((p,i)=>{
+    const note=state.notes[i];
+    const hasNote=note&&note.text;
     cards+=`<div style="margin:0 16px 8px;border-radius:12px;padding:12px 14px;background:${G.s};border:.5px solid ${G.b};">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">${av(p.n,p.a,40)}<div style="flex:1;"><div style="font-size:14px;font-weight:500;color:${G.t};">${p.n}</div><div style="font-size:11px;color:${G.m};margin-top:1px;">${p.r}</div></div><div style="text-align:right;"><div style="font-size:13px;font-weight:500;color:${p.ac};">${p.av}</div><div style="font-size:10px;color:${G.m};">available</div></div></div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"><span class="pill" style="background:${G.s2};color:${G.t};">Hdcp ${p.h}</span><span class="pill" style="background:${G.s2};color:${G.t};">${p.rd} rounds/yr</span><span class="pill" style="background:${p.mb};color:${p.mc};">${p.mu} mutual</span></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"><span class="pill" style="background:${G.s2};color:${G.t};">Hdcp ${p.h}</span><span class="pill" style="background:${G.s2};color:${G.t};">${p.rd} rounds/yr</span><span class="pill" style="background:${p.mb};color:${p.mc};">${p.mu} mutual</span><span class="pill" style="background:${G.gB};color:${G.gT};">⚡ ${getMatchScore(p,state.user.hdcp)}% match</span></div>
+      ${hasNote?`<div style="margin-bottom:8px;padding:8px 10px;border-radius:8px;background:${G.s2};border-left:2px solid ${G.g};"><div style="font-size:11px;color:${G.gD};margin-bottom:2px;">Your note</div><div style="font-size:12px;color:${G.t};">${note.text}</div></div>`:''}
       <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:11px;color:${G.m};">${p.l}</span>
-      <div style="display:flex;gap:6px;"><div onclick="openNote(${i})" style="font-size:11px;font-weight:500;padding:6px 10px;border-radius:20px;background:${G.s2};color:${G.m};cursor:pointer;">Note</div><div style="font-size:12px;font-weight:500;padding:6px 14px;border-radius:20px;background:${p.bb};color:${p.bc};cursor:pointer;">Request round</div></div></div>
+      <div style="display:flex;gap:6px;">
+        <div onclick="openNote(${i})" style="font-size:11px;font-weight:500;padding:6px 10px;border-radius:20px;background:${hasNote?G.gB:G.s2};color:${hasNote?G.gT:G.m};cursor:pointer;">${hasNote?'Edit note':'Add note'}</div>
+        <div onclick="openRoundRequest(${i})" style="font-size:12px;font-weight:500;padding:6px 14px;border-radius:20px;background:${p.bb};color:${p.bc};cursor:pointer;">Request round</div>
+      </div></div>
     </div>`;
   });
-  return `<div class="screen active">
+  const requests=state.roundRequests||[];
+  let reqHtml='';
+  if(requests.length>0){
+    reqHtml=`<div class="sh">Sent requests</div>${requests.map((r,i)=>`<div style="margin:0 16px 6px;border-radius:10px;padding:10px 14px;background:${G.gB};display:flex;align-items:center;gap:10px;">${av(NET_DATA[r.playerIdx]?.n||'?',r.playerIdx,28)}<div style="flex:1;font-size:13px;color:${G.gT};">Round request sent to ${NET_DATA[r.playerIdx]?.n||'?'}</div><div style="font-size:11px;color:${G.gD};">${r.time}</div></div>`).join('')}`;
+  }
+  return `<div class="scr on">
     ${sb()}
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 16px 8px;">
-      <div style="font-size:20px;font-weight:500;color:${G.t};">Network</div>
-    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 16px 8px;"><div style="font-size:20px;font-weight:500;color:${G.t};">Network</div></div>
     <div class="tabs"><div class="tab on">Discover</div><div class="tab">Connections</div><div class="tab">Played with</div></div>
     <div class="scroll">
-      <div style="display:flex;gap:6px;padding:10px 16px;overflow-x:auto;">
-        ${filters.map(f=>`<div onclick="state.netFilter='${f}';render()" style="white-space:nowrap;font-size:11px;font-weight:500;padding:5px 12px;border-radius:20px;flex-shrink:0;cursor:pointer;background:${state.netFilter===f?G.g:G.s2};color:${state.netFilter===f?'#173404':G.m};border:${state.netFilter===f?'none':`.5px solid ${G.b}`};">${f}</div>`).join('')}
-      </div>
+      <div style="display:flex;gap:6px;padding:10px 16px;overflow-x:auto;">${filters.map(f=>`<div onclick="state.netFilter='${f}';render()" style="white-space:nowrap;font-size:11px;font-weight:500;padding:5px 12px;border-radius:20px;flex-shrink:0;cursor:pointer;background:${state.netFilter===f?G.g:G.s2};color:${state.netFilter===f?'#173404':G.m};border:${state.netFilter===f?'none':`.5px solid ${G.b}`};">${f}</div>`).join('')}</div>
       <div style="margin:0 16px 10px;border-radius:10px;padding:9px 12px;background:${G.s};display:flex;align-items:center;gap:8px;"><div style="width:8px;height:8px;border-radius:50%;background:${G.g};flex-shrink:0;"></div><div style="font-size:12px;color:${G.t};">6 players in your industry playing within 20 miles this week</div></div>
       <div class="sh">Best matches</div>
       ${cards}
+      ${reqHtml}
       <div style="height:16px;"></div>
     </div>
-    ${nav('network')}
+    ${navHtml('network')}
   </div>`;
 }
 
-function openNote(i){state.notePlayer=NET[i];go('note');}
+function openNote(i){state.notePlayer=i;go('note');}
+function openRoundRequest(i){state.notePlayer=i;state.aiDraft=null;state.aiDraftLoading=false;go('round-request');}
 
-// ── NOTE ─────────────────────────────────────────────────────────────
 function renderNote(){
-  const p=state.notePlayer||NET[0];
-  return `<div class="screen active">
-    ${sb()}
-    ${topbar('How was the round?','back()','<span onclick="back()" style="color:'+G.m+';">Skip</span>')}
+  const i=state.notePlayer;
+  const p=NET_DATA[i];
+  const existing=state.notes[i]||{tags:[],text:'',reminder:false};
+  const allTags=["Good conversation","Would play again","Business potential","Solid player","Great contact","Slow pace"];
+  return `<div class="scr on">
+    ${sb()}${topbar('Add note','back()','<span onclick="saveNote()" style="color:'+G.gT+';cursor:pointer;">Save</span>')}
     <div class="scroll" style="padding:12px 16px;display:flex;flex-direction:column;gap:12px;">
       <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:${G.s};border:.5px solid ${G.b};">${av(p.n,p.a,44)}<div><div style="font-size:15px;font-weight:500;color:${G.t};">${p.n}</div><div style="font-size:12px;color:${G.m};margin-top:2px;">${p.r}</div></div></div>
       <div class="sh" style="padding:0 0 6px;">Quick tags</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;">${["Good conversation","Would play again","Business potential","Solid player","Great contact","Slow pace"].map((tag,i)=>`<div style="padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;background:${i<2?G.gB:G.s};color:${i<2?G.gT:G.m};border:.5px solid ${i<2?'#639922':G.b};cursor:pointer;">${tag}</div>`).join('')}</div>
-      <div class="sh" style="padding:0 0 6px;">Add a note</div>
-      <textarea id="note-txt" placeholder="e.g. Works in SaaS, mentioned looking at new tools. Follow up in a few weeks." rows="3" style="width:100%;border-radius:10px;padding:11px 14px;font-size:13px;background:${G.s};border:.5px solid ${G.b};color:${G.t};font-family:inherit;outline:none;resize:none;"></textarea>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">${allTags.map((tag)=>`<div onclick="toggleNoteTag('${tag}')" style="padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;background:${(existing.tags||[]).includes(tag)?G.gB:G.s};color:${(existing.tags||[]).includes(tag)?G.gT:G.m};border:.5px solid ${(existing.tags||[]).includes(tag)?'#639922':G.b};cursor:pointer;">${tag}</div>`).join('')}</div>
+      <div class="sh" style="padding:0 0 6px;">Note</div>
+      <textarea id="note-txt" rows="3" style="width:100%;border-radius:10px;padding:11px 14px;font-size:13px;background:${G.s};border:.5px solid ${G.b};color:${G.t};font-family:inherit;outline:none;resize:none;">${existing.text||''}</textarea>
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:10px;background:${G.s};border:.5px solid ${G.b};">
-        <div><div style="font-size:13px;color:${G.t};">Follow-up reminder</div><div style="font-size:11px;color:${G.m};margin-top:2px;">Ping you in 2 weeks</div></div>
-        <div style="width:40px;height:24px;border-radius:12px;background:#639922;display:flex;align-items:center;justify-content:flex-end;padding:2px 3px;"><div style="width:20px;height:20px;border-radius:50%;background:${G.t};"></div></div>
+        <div><div style="font-size:13px;color:${G.t};">Follow-up reminder</div><div style="font-size:11px;color:${G.m};margin-top:2px;">Surfaces in your feed in 2 weeks</div></div>
+        <div onclick="toggleReminder()" style="width:40px;height:24px;border-radius:12px;background:${existing.reminder?'#639922':G.b};display:flex;align-items:center;padding:2px 3px;justify-content:${existing.reminder?'flex-end':'flex-start'};cursor:pointer;"><div style="width:20px;height:20px;border-radius:50%;background:${G.t};"></div></div>
       </div>
-      <div class="btn bg" onclick="back()">Save note</div>
+      <div class="btn bg" onclick="saveNote()">Save note</div>
     </div>
-    ${nav('network')}
+    ${navHtml('network')}
   </div>`;
 }
+function toggleNoteTag(tag){
+  const i=state.notePlayer;
+  if(!state.notes[i]) state.notes[i]={tags:[],text:'',reminder:false};
+  const tags=state.notes[i].tags||[];
+  state.notes[i].tags=tags.includes(tag)?tags.filter(t=>t!==tag):[...tags,tag];
+  saveState();render();
+}
+function toggleReminder(){
+  const i=state.notePlayer;
+  if(!state.notes[i]) state.notes[i]={tags:[],text:'',reminder:false};
+  state.notes[i].reminder=!state.notes[i].reminder;
+  saveState();render();
+}
+function saveNote(){
+  const i=state.notePlayer;
+  if(!state.notes[i]) state.notes[i]={tags:[],text:'',reminder:false};
+  const txt=document.getElementById('note-txt')?.value||'';
+  state.notes[i].text=txt;
+  // if reminder on, add to feed reminders
+  if(state.notes[i].reminder){
+    if(!state.feedReminders.some(r=>r.playerIdx===i)){
+      state.feedReminders.push({playerIdx:i,time:'2 weeks'});
+    }
+  }
+  saveState();
+  showToast('Note saved');
+  go('network');
+}
 
-// ── PROFILE ──────────────────────────────────────────────────────────
+function renderRoundRequest(){
+  const i=state.notePlayer;
+  const p=NET_DATA[i];
+  return `<div class="scr on">
+    ${sb()}${topbar('Request a round','back()')}
+    <div class="scroll" style="padding:12px 16px;display:flex;flex-direction:column;gap:12px;">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:${G.s};border:.5px solid ${G.b};">${av(p.n,p.a,44)}<div><div style="font-size:15px;font-weight:500;color:${G.t};">${p.n}</div><div style="font-size:12px;color:${G.m};margin-top:2px;">${p.r}</div></div></div>
+      <div><div style="font-size:12px;color:${G.m};margin-bottom:6px;">Suggest a date</div><input id="req-date" class="inp" placeholder="e.g. Saturday morning, Oct 12"/></div>
+      <div><div style="font-size:12px;color:${G.m};margin-bottom:6px;">Course (optional)</div><input id="req-course" class="inp" placeholder="e.g. Cog Hill, Medinah..."/></div>
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <div style="font-size:12px;color:${G.m};">Message</div>
+          <div onclick="getAIDraft(${i})" style="padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500;background:${state.aiDraftLoading?G.s2:G.gB};color:${state.aiDraftLoading?G.m:G.gT};cursor:pointer;border:.5px solid ${state.aiDraftLoading?G.b:'#639922'};">${state.aiDraftLoading?'Writing...':'✨ AI draft'}</div>
+        </div>
+        <textarea id="req-msg" rows="2" style="width:100%;border-radius:10px;padding:11px 14px;font-size:13px;background:${G.s};border:.5px solid ${G.b};color:${G.t};font-family:inherit;outline:none;resize:none;">${state.aiDraft||'Hey, want to play a round this week?'}</textarea>
+      </div>
+      <div class="btn bg" onclick="sendRoundRequest(${i})">Send request →</div>
+    </div>
+    ${navHtml('network')}
+  </div>`;
+}
+function sendRoundRequest(i){
+  const date=document.getElementById('req-date')?.value||'';
+  const msg=document.getElementById('req-msg')?.value||'';
+  if(!state.roundRequests) state.roundRequests=[];
+  state.roundRequests.unshift({playerIdx:i,date,msg,time:'Just now'});
+  saveState();
+  showToast(`Round request sent to ${NET_DATA[i].n}`);
+  go('network');
+}
+
+// ══ PROFILE ════════════════════════════════════════════════════════════
 function renderProfile(){
   const pt=state.profTab;
-  const progRows=[{l:"Fairway accuracy",v:"+12%",pos:true},{l:"3-putt rate",v:"-40%",pos:true},{l:"GIR from 150+",v:"+8%",pos:true},{l:"Scoring avg",v:"-1.4",pos:true},{l:"Handicap trend",v:"-1.8",pos:true}];
-  const mem=[{m:"Hole 7: 3W over driver — confirmed 3 rounds in a row",g:true},{m:"Inside 100 yards: your strongest area this month",g:true},{m:"Hole 14: driver into wind = trouble every time",g:false},{m:"8-iron from 155: runs through the back. 9-iron is your number",g:true},{m:"Par 3s: club up in wind — you've been short 4 times",g:false}];
+  const stats=computeStats();
+  const hasRounds=state.rounds.length>0;
+
+  // hdcp chart
+  const hist=state.hdcpHistory.slice(-11);
+  const min=Math.min(...hist)-0.5,max=Math.max(...hist)+0.5;
+  const range=max-min;
+  const chartBars=hist.map((v,i)=>{
+    const pct=range>0?((max-v)/range*100):50;
+    const isLast=i===hist.length-1;
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
+      <div style="flex:1;display:flex;align-items:flex-end;width:100%;">
+        <div style="width:100%;background:${isLast?G.g:G.gB};border-radius:3px 3px 0 0;height:${Math.max(8,100-pct)}%;min-height:8px;"></div>
+      </div>
+      <div style="font-size:8px;color:${G.m};">${v.toFixed(1)}</div>
+    </div>`;
+  }).join('');
+
+  // friend comparison
+  const myHdcp=state.user.hdcp;
+  const friendComps=state.friends.slice(0,3).map(f=>{
+    const diff=+(myHdcp-f.hdcp).toFixed(1);
+    return `<div style="display:flex;align-items:center;padding:9px 16px;border-bottom:.5px solid ${G.b};">${av(f.name,f.avIdx,28)}<div style="flex:1;margin-left:8px;font-size:13px;color:${G.t};">${f.name}</div><span class="pill" style="background:${diff<0?G.gB:G.rB};color:${diff<0?G.gT:G.r};">${diff<0?'You by '+Math.abs(diff):'Down '+Math.abs(diff)}</span></div>`;
+  }).join('');
+
+  // derived memory patterns
+  const patterns=[];
+  Object.entries(state.caddieMem).forEach(([hi,mem])=>{
+    if(mem.length<2) return;
+    const byClub={};
+    mem.forEach(m=>{
+      if(!byClub[m.club]) byClub[m.club]={good:0,bad:0};
+      if(m.result==='good'||m.result==='okay') byClub[m.club].good++;
+      else byClub[m.club].bad++;
+    });
+    Object.entries(byClub).forEach(([club,d])=>{
+      const total=d.good+d.bad;
+      if(total<2) return;
+      if(d.bad/total>=0.6) patterns.push({msg:`Hole ${parseInt(hi)+1}: ${club} causes trouble (${Math.round(d.bad/total*100)}% bad)`,good:false});
+      if(d.good/total>=0.8) patterns.push({msg:`Hole ${parseInt(hi)+1}: ${club} is your play (${Math.round(d.good/total*100)}% success)`,good:true});
+    });
+  });
+  const showPatterns=patterns.length>0?patterns:[{msg:'Log rounds to build your caddie memory patterns',good:true}];
+
+  const progRows=[
+    {l:"Handicap",v:myHdcp.toFixed(1),pos:true,fromRounds:false},
+    {l:"Fairway accuracy",v:hasRounds&&stats.fairways!==null?(stats.fairways+'%'):'--',pos:true,fromRounds:true},
+    {l:"3-putt rate",v:hasRounds&&stats.avgPutts!==null?stats.avgPutts+'/rnd':'--',pos:false,fromRounds:true},
+    {l:"GIR",v:hasRounds&&stats.gir!==null?(stats.gir+'%'):'--',pos:true,fromRounds:true},
+    {l:"Avg score",v:hasRounds&&stats.avgScore?stats.avgScore:'--',pos:false,fromRounds:true},
+  ];
+
   let tabBody='';
-  if(pt===0) tabBody=`<div class="sh">Patterns learned</div>${mem.map(m=>`<div style="margin:0 16px 6px;border-radius:10px;padding:10px 14px;background:${m.g?G.s:G.aB};"><div style="font-size:13px;color:${m.g?G.t:G.aT};line-height:1.5;">${m.m}</div></div>`).join('')}`;
-  else if(pt===1) tabBody=`<div class="sh">Progress this month</div>${progRows.map(r=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:.5px solid ${G.b};"><span style="font-size:13px;color:${G.t};">${r.l}</span><span class="pill" style="background:${r.pos?G.gB:G.rB};color:${r.pos?G.gT:G.r};">${r.v}</span></div>`).join('')}`;
-  else tabBody=`<div class="sh">Played with recently</div>${NET.slice(0,3).map((p,i)=>`<div onclick="openNote(${i})" style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:.5px solid ${G.b};cursor:pointer;">${av(p.n,p.a,34)}<div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${G.t};">${p.n}</div><div style="font-size:11px;color:${G.m};margin-top:1px;">${p.l}</div></div><span style="color:${G.m};">›</span></div>`).join('')}`;
-  return `<div class="screen active">
+  if(pt===0) tabBody=`
+    <div class="sh">Patterns learned from your rounds</div>
+    ${showPatterns.slice(0,6).map(p=>`<div style="margin:0 16px 6px;border-radius:10px;padding:10px 14px;background:${p.good?G.s:G.aB};"><div style="font-size:13px;color:${p.good?G.t:G.aT};line-height:1.5;">${p.msg}</div></div>`).join('')}
+    ${!hasRounds?`<div style="margin:0 16px;padding:12px 14px;border-radius:10px;background:${G.s2};font-size:12px;color:${G.m};">Log rounds on the Round tab — patterns build automatically from what you hit on each hole.</div>`:''}`;
+  else if(pt===1) tabBody=`
+    <div class="sh">Handicap trend</div>
+    <div style="margin:0 16px 12px;border-radius:10px;padding:14px;background:${G.s};">
+      <div style="display:flex;align-items:flex-end;height:80px;gap:3px;">${chartBars}</div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;"><span style="font-size:10px;color:${G.m};">10 rounds ago</span><span style="font-size:10px;color:${G.m};">Now: ${myHdcp.toFixed(1)}</span></div>
+    </div>
+    <div class="sh">This month vs last month</div>
+    ${progRows.map(r=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:.5px solid ${G.b};"><span style="font-size:13px;color:${G.t};">${r.l}</span>${r.fromRounds&&!hasRounds?`<span style="font-size:11px;color:${G.m};">Log rounds to track</span>`:`<span class="pill" style="background:${G.gB};color:${G.gT};">${r.v}</span>`}</div>`).join('')}`;
+  else tabBody=`
+    <div class="sh">vs your friends</div>
+    ${friendComps}
+    <div class="sh">Played with recently</div>
+    ${NET_DATA.slice(0,3).map((p,i)=>`<div onclick="openNote(${i})" style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:.5px solid ${G.b};cursor:pointer;">${av(p.n,p.a,34)}<div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${G.t};">${p.n}</div><div style="font-size:11px;color:${G.m};margin-top:1px;">${state.notes[i]?.text?state.notes[i].text.slice(0,40)+'...':p.l}</div></div><span style="color:${G.m};">›</span></div>`).join('')}`;
+
+  return `<div class="scr on">
     ${sb()}
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 16px 8px;">
+      <div style="font-size:20px;font-weight:500;color:${G.t};">Profile</div>
+      <div onclick="go('settings')" style="width:32px;height:32px;border-radius:50%;background:${window.AI?.hasKey()?G.gB:G.s2};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;border:.5px solid ${window.AI?.hasKey()?'#639922':G.b};" title="AI Settings">${window.AI?.hasKey()?'✨':'⚙'}</div>
+    </div>
     <div class="scroll">
-      <div style="padding:20px 16px 16px;text-align:center;border-bottom:.5px solid ${G.b};">
-        <div style="width:64px;height:64px;border-radius:50%;background:${G.gB};display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:500;color:${G.gT};margin:0 auto;">AJ</div>
-        <div style="font-size:18px;font-weight:500;color:${G.t};margin-top:10px;">Adrian J.</div>
+      <div style="padding:12px 16px 16px;text-align:center;border-bottom:.5px solid ${G.b};">
+        ${av(state.user.name,0,64)}
+        <div style="font-size:18px;font-weight:500;color:${G.t};margin-top:10px;">${state.user.name}</div>
         <div style="font-size:13px;color:${G.m};margin-top:2px;">VP of Sales · Chicago, IL</div>
-        <div style="display:flex;justify-content:center;gap:6px;margin-top:10px;"><span class="pill" style="background:${G.gB};color:${G.gT};">Hdcp 14.2</span><span class="pill" style="background:${G.s2};color:${G.m};">22 rounds this year</span></div>
+        <div style="display:flex;justify-content:center;gap:6px;margin-top:10px;"><span class="pill" style="background:${G.gB};color:${G.gT};">Hdcp ${state.user.hdcp.toFixed(1)}</span><span class="pill" style="background:${G.s2};color:${G.m};">${state.rounds.length} rounds logged</span></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:12px 16px;">
-        ${[{n:"-1.8",l:"Hdcp trend"},{n:"#2",l:"Oct challenge"},{n:"3",l:"Rounds won"}].map(s=>`<div style="background:${G.s};border-radius:10px;padding:10px;text-align:center;"><div style="font-size:20px;font-weight:500;color:${G.g};">${s.n}</div><div style="font-size:10px;color:${G.m};margin-top:2px;">${s.l}</div></div>`).join('')}
+        ${[{n:state.hdcpHistory.length>2?(+(state.hdcpHistory[state.hdcpHistory.length-1]-state.hdcpHistory[0]).toFixed(1)):0,l:"Hdcp change"},{n:"#2",l:"Oct challenge"},{n:state.rounds.length,l:"Rounds logged"}].map(s=>`<div style="background:${G.s};border-radius:10px;padding:10px;text-align:center;"><div style="font-size:20px;font-weight:500;color:${G.g};">${s.n}</div><div style="font-size:10px;color:${G.m};margin-top:2px;">${s.l}</div></div>`).join('')}
       </div>
       <div class="tabs">${['Memory','Progress','Network'].map((t,i)=>`<div class="tab${pt===i?' on':''}" onclick="state.profTab=${i};render();">${t}</div>`).join('')}</div>
       ${tabBody}
       <div style="height:16px;"></div>
     </div>
-    ${nav('profile')}
+    ${navHtml('profile')}
   </div>`;
 }
 
-// ── NEW CHALLENGE ─────────────────────────────────────────────────────
+// ══ NEW CHALLENGE ══════════════════════════════════════════════════════
 const METRICS=[{id:"hdcp",l:"Most improved handicap",ic:"📉"},{id:"putts",l:"Fewest 3-putts",ic:"🏌️"},{id:"gir",l:"GIR from 150+ yards",ic:"🎯"},{id:"fw",l:"Most fairways hit",ic:"✅"},{id:"scoring",l:"Lowest scoring avg",ic:"🔢"}];
 
 function renderNewChallenge(){
   const step=state.ncStep;
   let body='',right='';
-  if(step===2) right=`<span onclick="state.ncStep=0;go('challenges')" style="color:${G.g};">Send ✓</span>`;
+  if(step===2) right=`<span onclick="sendChallenge()" style="color:${G.gT};">Send ✓</span>`;
+
   if(step===0){
-    body=`<div style="padding:12px 16px;display:flex;flex-direction:column;gap:12px;">
-      <div style="font-size:11px;color:${G.m};letter-spacing:.04em;">FORMAT</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        ${['group','duel'].map(t=>`<div onclick="state.ncType='${t}';render()" style="border-radius:10px;padding:12px 14px;background:${state.ncType===t?G.gB:G.s};border:.5px solid ${state.ncType===t?'#639922':G.b};cursor:pointer;"><div style="font-size:13px;font-weight:500;color:${state.ncType===t?G.gT:G.t};">${t==='group'?'Group':'Head-to-head'}</div><div style="font-size:11px;color:${G.m};margin-top:2px;">${t==='group'?'3+ players':'1v1 duel'}</div></div>`).join('')}
+    const ac=state.aiChallenge;
+    const acLoading=state.aiChallengeLoading;
+    const aiChalCard=`<div style="border-radius:12px;padding:14px;background:${ac?'#1a0e2e':G.s};border:.5px solid ${ac?'#7c3aed':G.b};">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${ac?'12px':'0'};">
+        <div>
+          <div style="font-size:12px;font-weight:500;color:${ac?'#c4b5fd':G.t};">✨ AI challenge suggestion</div>
+          <div style="font-size:11px;color:${G.m};margin-top:1px;">Powered by Claude</div>
+        </div>
+        <div onclick="getAIChallenge()" style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;background:${acLoading?G.s2:'#2e1065'};color:${acLoading?G.m:'#c4b5fd'};cursor:pointer;border:.5px solid ${acLoading?G.b:'#7c3aed'};">${acLoading?'Thinking...':ac?'Refresh':'Suggest →'}</div>
       </div>
+      ${ac?`<div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:13px;font-weight:500;color:#e9d5ff;line-height:1.5;">${ac.title||''}</div>
+        <div style="font-size:12px;color:#c4b5fd;line-height:1.6;">${ac.metric?'<span style="opacity:.7;">Metric:</span> '+ac.metric:''}</div>
+        <div style="font-size:12px;color:#c4b5fd;line-height:1.6;">${ac.duration?'<span style="opacity:.7;">Duration:</span> '+ac.duration:''} ${ac.stake?'· <span style="opacity:.7;">Stake:</span> '+ac.stake:''}</div>
+        ${ac.why?`<div style="font-size:11px;color:#a78bfa;font-style:italic;border-top:.5px solid #3b1d7a;padding-top:8px;">${ac.why}</div>`:''}
+        <div onclick="applyAIChallenge()" style="margin-top:2px;padding:9px;border-radius:10px;background:#2e1065;text-align:center;font-size:12px;font-weight:500;color:#c4b5fd;cursor:pointer;border:.5px solid #7c3aed;">Apply this suggestion →</div>
+      </div>`:`<div style="font-size:12px;color:${G.m};">Claude will analyse your stats and suggest the best challenge for your game right now.</div>`}
+    </div>`;
+    body=`<div style="padding:12px 16px;display:flex;flex-direction:column;gap:12px;">
+      ${aiChalCard}
+      <div style="font-size:11px;color:${G.m};letter-spacing:.04em;">FORMAT</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">${['group','duel'].map(t=>`<div onclick="state.ncType='${t}';render()" style="border-radius:10px;padding:12px 14px;background:${state.ncType===t?G.gB:G.s};border:.5px solid ${state.ncType===t?'#639922':G.b};cursor:pointer;"><div style="font-size:13px;font-weight:500;color:${state.ncType===t?G.gT:G.t};">${t==='group'?'Group':'Head-to-head'}</div></div>`).join('')}</div>
       <div style="font-size:11px;color:${G.m};letter-spacing:.04em;">IMPROVEMENT</div>
       ${METRICS.map(m=>`<div onclick="state.ncMetric='${m.id}';render()" style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;background:${state.ncMetric===m.id?G.gB:G.s};border:.5px solid ${state.ncMetric===m.id?'#639922':G.b};cursor:pointer;"><span style="font-size:18px;">${m.ic}</span><div style="font-size:13px;font-weight:500;color:${state.ncMetric===m.id?G.gT:G.t};">${m.l}</div></div>`).join('')}
       <div style="font-size:11px;color:${G.m};letter-spacing:.04em;">SKINS</div>
       <div onclick="state.ncMetric='skins';render()" style="padding:12px 14px;border-radius:10px;background:${state.ncMetric==='skins'?'#412402':G.s};border:.5px solid ${state.ncMetric==='skins'?'#854F0B':G.b};cursor:pointer;">
-        <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:18px;">💀</span><div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${state.ncMetric==='skins'?'#FAC775':G.t};">Skins</div><div style="font-size:11px;color:${G.m};">Win holes outright. Ties carry.</div></div></div>
-        ${state.ncMetric==='skins'?`<div style="border-top:.5px solid #854F0B;padding-top:10px;margin-top:10px;display:flex;flex-direction:column;gap:8px;">
-          <div style="font-size:11px;color:#BA7517;line-height:1.6;">Each hole = 1 skin. Win a hole outright (no ties) to claim it. Most skins wins.</div>
+        <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:18px;">💀</span><div><div style="font-size:13px;font-weight:500;color:${state.ncMetric==='skins'?'#FAC775':G.t};">Skins</div><div style="font-size:11px;color:${G.m};">Hole-by-hole live scoring</div></div></div>
+        ${state.ncMetric==='skins'?`<div style="border-top:.5px solid #854F0B;padding-top:10px;margin-top:10px;display:flex;flex-direction:column;gap:8px;" onclick="event.stopPropagation()">
           <div style="display:flex;gap:8px;">${[9,18].map(h=>`<div onclick="event.stopPropagation();state.skinsHoles=${h};render()" style="flex:1;text-align:center;padding:8px;border-radius:10px;font-size:12px;font-weight:500;background:${state.skinsHoles===h?'#854F0B':G.s2};color:${state.skinsHoles===h?'#FAC775':G.m};cursor:pointer;">${h} holes</div>`).join('')}</div>
           <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:10px;background:${G.s2};">
-            <div><div style="font-size:12px;font-weight:500;color:#FAC775;">Carry skins</div><div style="font-size:11px;color:${G.m};">Ties carry forward</div></div>
+            <div style="font-size:12px;font-weight:500;color:#FAC775;">Carry skins on ties</div>
             <div onclick="event.stopPropagation();state.skinsCarry=!state.skinsCarry;render()" style="width:40px;height:24px;border-radius:12px;background:${state.skinsCarry?'#854F0B':G.b};display:flex;align-items:center;padding:2px 3px;justify-content:${state.skinsCarry?'flex-end':'flex-start'};cursor:pointer;"><div style="width:20px;height:20px;border-radius:50%;background:${G.t};"></div></div>
           </div>
         </div>`:''}
@@ -438,21 +1025,19 @@ function renderNewChallenge(){
       <div style="font-size:11px;color:${G.m};letter-spacing:.04em;">CUSTOM</div>
       <div onclick="state.ncMetric='custom';render()" style="padding:12px 14px;border-radius:10px;background:${state.ncMetric==='custom'?G.blB:G.s};border:.5px solid ${state.ncMetric==='custom'?'#185FA5':G.b};cursor:pointer;">
         <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:18px;">✏️</span><div style="font-size:13px;font-weight:500;color:${state.ncMetric==='custom'?G.bl:G.t};">Custom challenge</div></div>
-        ${state.ncMetric==='custom'?`<div style="margin-top:10px;" onclick="event.stopPropagation()"><textarea id="cm-inp" placeholder='"Most birdies in a single round"' rows="2" style="width:100%;border-radius:10px;padding:10px;font-size:13px;background:${G.s2};border:.5px solid ${G.b};color:${G.t};font-family:inherit;outline:none;resize:none;">${state.ncCustomMetric}</textarea></div>`:''}
+        ${state.ncMetric==='custom'?`<div style="margin-top:10px;" onclick="event.stopPropagation()"><textarea id="cm-inp" rows="2" placeholder='"Most birdies in a single round"' style="width:100%;border-radius:10px;padding:10px;font-size:13px;background:${G.s2};border:.5px solid ${G.b};color:${G.t};font-family:inherit;outline:none;resize:none;">${state.ncCustomMetric}</textarea></div>`:''}
       </div>
       <div style="font-size:11px;color:${G.m};letter-spacing:.04em;">DURATION</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-        ${[{id:'single',l:'Single round',s:'One day'},{id:'preset',l:'Multi-round',s:'Set timeframe'},{id:'custom',l:'Custom',s:'Pick end date'}].map(d=>`<div onclick="state.ncDurType='${d.id}';render()" style="border-radius:10px;padding:10px 8px;text-align:center;background:${state.ncDurType===d.id?G.gB:G.s};border:.5px solid ${state.ncDurType===d.id?'#639922':G.b};cursor:pointer;"><div style="font-size:12px;font-weight:500;color:${state.ncDurType===d.id?G.gT:G.t};">${d.l}</div><div style="font-size:10px;color:${G.m};margin-top:2px;">${d.s}</div></div>`).join('')}
-      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">${[{id:'single',l:'Single round'},{id:'preset',l:'Multi-round'},{id:'custom',l:'Custom date'}].map(d=>`<div onclick="state.ncDurType='${d.id}';render()" style="border-radius:10px;padding:10px 8px;text-align:center;background:${state.ncDurType===d.id?G.gB:G.s};border:.5px solid ${state.ncDurType===d.id?'#639922':G.b};cursor:pointer;font-size:12px;font-weight:500;color:${state.ncDurType===d.id?G.gT:G.t};">${d.l}</div>`).join('')}</div>
       ${state.ncDurType==='preset'?`<div style="display:flex;gap:8px;">${['1 week','2 weeks','30 days','60 days'].map(d=>`<div onclick="state.ncDur='${d}';render()" style="flex:1;text-align:center;padding:9px 4px;border-radius:10px;font-size:11px;font-weight:500;background:${state.ncDur===d?G.gB:G.s};color:${state.ncDur===d?G.gT:G.m};border:.5px solid ${state.ncDur===d?'#639922':G.b};cursor:pointer;">${d}</div>`).join('')}</div>`:''}
       ${state.ncDurType==='custom'?`<input id="cd-inp" class="inp" placeholder="e.g. December 31, 2025" value="${state.ncCustomDur}"/>`:''}
-      <div class="btn bg" onclick="if(document.getElementById('cm-inp'))state.ncCustomMetric=document.getElementById('cm-inp').value;if(document.getElementById('cd-inp'))state.ncCustomDur=document.getElementById('cd-inp').value;state.ncStep=1;render();">Pick players →</div>
+      <div class="btn bg" onclick="saveChalStep0()">Pick players →</div>
     </div>`;
   }
   else if(step===1){
     body=`<div style="padding:12px 16px;display:flex;flex-direction:column;gap:12px;">
       <div class="sh" style="padding:0 0 8px;">Invite friends</div>
-      ${FEED.map((f,i)=>`<div onclick="toggleFriend(${i})" style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;background:${state.ncFriends.includes(i)?G.gB:G.s};border:.5px solid ${state.ncFriends.includes(i)?'#639922':G.b};cursor:pointer;">${av(f.n,f.a,34)}<div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${state.ncFriends.includes(i)?G.gT:G.t};">${f.n}</div><div style="font-size:11px;color:${G.m};">Hdcp 11.${i+1}</div></div><div style="width:22px;height:22px;border-radius:50%;background:${state.ncFriends.includes(i)?G.g:G.s2};display:flex;align-items:center;justify-content:center;border:${state.ncFriends.includes(i)?'none':`.5px solid ${G.b}`};font-size:14px;color:#173404;">${state.ncFriends.includes(i)?'✓':''}</div></div>`).join('')}
+      ${state.friends.map((f,i)=>`<div onclick="toggleFriend(${i})" style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;background:${state.ncFriends.includes(i)?G.gB:G.s};border:.5px solid ${state.ncFriends.includes(i)?'#639922':G.b};cursor:pointer;">${av(f.name,f.avIdx,34)}<div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${state.ncFriends.includes(i)?G.gT:G.t};">${f.name}</div><div style="font-size:11px;color:${G.m};">Hdcp ${f.hdcp}</div></div><div style="width:22px;height:22px;border-radius:50%;background:${state.ncFriends.includes(i)?G.g:G.s2};display:flex;align-items:center;justify-content:center;font-size:13px;color:#173404;">${state.ncFriends.includes(i)?'✓':''}</div></div>`).join('')}
       <div class="sh" style="padding:0 0 8px;">Stake</div>
       ${["Loser buys the round","Bragging rights","Loser picks tee time","Loser carries the bag","Custom stake"].map(st=>`<div onclick="state.ncStake='${st}';render()" style="padding:11px 14px;border-radius:10px;background:${state.ncStake===st?G.gB:G.s};border:.5px solid ${state.ncStake===st?'#639922':G.b};cursor:pointer;font-size:13px;color:${state.ncStake===st?G.gT:G.t};margin-bottom:4px;">${st}</div>`).join('')}
       <div class="btn bg" onclick="state.ncStep=2;render();">Preview →</div>
@@ -461,101 +1046,126 @@ function renderNewChallenge(){
   else{
     const isSkins=state.ncMetric==='skins',isCustom=state.ncMetric==='custom';
     const mLabel=isSkins?`Skins — ${state.skinsHoles} holes${state.skinsCarry?' (carry)':''}`:isCustom?state.ncCustomMetric||'Custom challenge':METRICS.find(m=>m.id===state.ncMetric)?.l||state.ncMetric;
-    const dLabel=state.ncDurType==='single'?'Single round':state.ncDurType==='custom'?state.ncCustomDur||'Custom end date':state.ncDur;
-    const pBg=isSkins?G.aB:G.gB,pTC=isSkins?G.aT:G.gT,pSC=isSkins?G.aD:G.gD;
+    const dLabel=state.ncDurType==='single'?'Single round':state.ncDurType==='custom'?state.ncCustomDur:state.ncDur;
+    const pBg=isSkins?G.aB:G.gB,pTC=isSkins?G.aT:G.gT;
     body=`<div style="padding:12px 16px;display:flex;flex-direction:column;gap:12px;">
-      <div style="border-radius:12px;padding:16px;background:${pBg};border:.5px solid ${isSkins?'#854F0B':'#639922'};">
-        <div style="font-size:15px;font-weight:500;color:${pTC};margin-bottom:6px;">${mLabel}</div>
-        <div style="font-size:12px;color:${pSC};line-height:1.7;">${state.ncType==='group'?'Group':'Head-to-head'} · ${dLabel} · ${state.ncFriends.length+1} players<br>Stake: ${state.ncStake}</div>
-      </div>
-      <div class="sh" style="padding:0 0 8px;">Players</div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">${[{n:'You (AJ)',a:0},...state.ncFriends.map(i=>FEED[i])].map(p=>`<div style="text-align:center;">${av(p.n,p.a,38)}<div style="font-size:10px;color:${G.m};margin-top:4px;">${p.n.split(' ')[0]}</div></div>`).join('')}</div>
-      <div class="sh" style="padding:0 0 8px;">Message</div>
-      <div style="border-radius:10px;padding:12px 14px;background:${G.s};border:.5px solid ${G.b};font-size:13px;color:${G.t};line-height:1.6;">${isSkins?`"Skins — ${state.skinsHoles} holes${state.skinsCarry?', carry':''}, ${dLabel}. ${state.ncStake}. You in?"`:'"'+dLabel+'. '+mLabel+' wins. '+state.ncStake+'. No excuses."'}</div>
-      <div style="display:flex;gap:8px;"><div onclick="state.ncStep=1;render()" class="btn bx" style="flex:1;">Edit</div><div onclick="state.ncStep=0;state.chalTab=0;go('challenges')" class="btn" style="flex:2;background:${pBg};color:${pTC};">Send challenge</div></div>
+      <div style="border-radius:12px;padding:16px;background:${pBg};"><div style="font-size:15px;font-weight:500;color:${pTC};margin-bottom:6px;">${mLabel}</div><div style="font-size:12px;color:${isSkins?G.aD:G.gD};line-height:1.7;">${state.ncType==='group'?'Group':'Head-to-head'} · ${dLabel} · ${state.ncFriends.length+1} players<br>Stake: ${state.ncStake}</div></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">${[{n:state.user.name,a:0},...state.ncFriends.map(i=>({n:state.friends[i].name,a:state.friends[i].avIdx}))].map(p=>`<div style="text-align:center;">${av(p.n,p.a,38)}<div style="font-size:10px;color:${G.m};margin-top:4px;">${p.n.split(' ')[0]}</div></div>`).join('')}</div>
+      <div style="border-radius:10px;padding:12px 14px;background:${G.s};border:.5px solid ${G.b};font-size:13px;color:${G.t};line-height:1.6;">${isSkins?`"Skins — ${state.skinsHoles} holes, ${state.skinsCarry?'carry,':''} ${dLabel}. ${state.ncStake}. You in?"`:'"'+dLabel+'. '+mLabel+' wins. '+state.ncStake+'. No excuses."'}</div>
+      <div style="display:flex;gap:8px;"><div onclick="state.ncStep=1;render()" class="btn bx" style="flex:1;">Edit</div><div onclick="sendChallenge()" class="btn" style="flex:2;background:${pBg};color:${pTC};">Send challenge</div></div>
     </div>`;
   }
-  return `<div class="screen active">
-    ${sb()}${topbar('New challenge','back()',right)}
-    <div class="scroll">${body}</div>
-    ${nav('challenges')}
-  </div>`;
+  return `<div class="scr on">${sb()}${topbar('New challenge','back()',right)}<div class="scroll">${body}</div>${navHtml('challenges')}</div>`;
+}
+function saveChalStep0(){
+  if(document.getElementById('cm-inp')) state.ncCustomMetric=document.getElementById('cm-inp').value;
+  if(document.getElementById('cd-inp')) state.ncCustomDur=document.getElementById('cd-inp').value;
+  state.ncStep=1;render();
 }
 function toggleFriend(i){
-  if(state.ncFriends.includes(i)) state.ncFriends=state.ncFriends.filter(x=>x!==i);
-  else state.ncFriends=[...state.ncFriends,i];
+  state.ncFriends=state.ncFriends.includes(i)?state.ncFriends.filter(x=>x!==i):[...state.ncFriends,i];
   render();
 }
+function sendChallenge(){
+  const isSkins=state.ncMetric==='skins',isCustom=state.ncMetric==='custom';
+  const mLabel=isSkins?`Skins — ${state.skinsHoles} holes${state.skinsCarry?' (carry)':''}`:isCustom?state.ncCustomMetric||'Custom challenge':METRICS.find(m=>m.id===state.ncMetric)?.l||state.ncMetric;
+  if(isSkins){
+    state.challenges.push({id:Date.now(),type:'skins',title:'Skins — New challenge',sub:state.ncFriends.map(i=>state.friends[i].name.split(' ')[0]).join(' · ')+' · You',skinsData:{holes:state.skinsHoles,carry:state.skinsCarry,players:[state.user.name,...state.ncFriends.map(i=>state.friends[i].name)],scores:{},skins:{}},bg:G.aB,tc:G.aT,sc:G.aD});
+  } else {
+    state.challenges.push({id:Date.now(),type:'progress',metric:state.ncMetric,title:mLabel,sub:state.ncFriends.length+1+' players · '+state.ncDur,rank:1,of:state.ncFriends.length+1,pct:50,bg:G.gB,tc:G.gT,sc:G.gD,pc:G.g,pb:'#173404',you:'Just started',lead:'Calculating...'});
+  }
+  state.ncStep=0;
+  state.aiChallenge=null;
+  state.aiChallengeLoading=false;
+  saveState();
+  showToast('Challenge sent!');
+  state.chalTab=0;
+  go('challenges');
+}
 
-// ── TOURNAMENT SCREENS ────────────────────────────────────────────────
+// ══ TOURNAMENT ══════════════════════════════════════════════════════════
+function calcLB(){
+  return state.players.filter(p=>Object.values(p.picks).filter(Boolean).length===4)
+    .map(p=>({...p,total:Object.values(p.picks).filter(Boolean).reduce((s,pk)=>{const live=state.players.find(r=>r.id===pk.id);return s+(live?.score??0);},0)}))
+    .sort((a,b)=>{if(a.total!==b.total) return a.total-b.total;// tiebreaker: fewest strokes combined from A-tier pick
+      const aA=state.players.find(r=>r.id===a.picks.A?.id)?.score??0;
+      const bA=state.players.find(r=>r.id===b.picks.A?.id)?.score??0;
+      return aA-bA;});
+}
+function renderTournamentTab(){
+  if(!state.tournament){
+    return `<div style="padding:16px;display:flex;flex-direction:column;gap:10px;">
+      <div style="border-radius:12px;padding:16px;background:${G.s};border:.5px solid ${G.b};">
+        <div style="font-size:14px;font-weight:500;color:${G.t};margin-bottom:4px;">Pick-em tournament</div>
+        <div style="font-size:12px;color:${G.m};line-height:1.7;margin-bottom:12px;">Create a tournament and share the code. Each player registers with their name, picks their tier (A/B/C/D), then builds a lineup of one from each tier. Best combined score wins. Tiebreaker: A-tier pick score.</div>
+        <div class="btn bg" onclick="go('host-setup')">Create tournament →</div>
+      </div>
+      <div style="display:flex;gap:8px;">${Object.entries(TIERS).map(([k,t])=>`<div style="flex:1;border-radius:10px;padding:10px 8px;background:${t.bg};border:.5px solid ${t.br};text-align:center;"><div style="font-size:18px;font-weight:600;color:${t.c};">${k}</div><div style="font-size:9px;color:${t.c};opacity:.8;margin-top:2px;">${t.d.split(' ').slice(0,2).join(' ')}</div></div>`).join('')}</div>
+    </div>`;
+  }
+  const lb=calcLB();
+  return `
+    <div style="margin:12px 16px;border-radius:12px;padding:14px;background:${state.scoring?G.rB:G.gB};">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><div style="font-size:15px;font-weight:500;color:${state.scoring?G.r:G.gT};">${state.tournament.name}</div><span class="pill" style="background:${state.scoring?'#300':'#173404'};color:${state.scoring?G.r:G.g};">${state.scoring?'Live':'Lobby'}</span></div>
+      <div style="font-size:11px;color:${state.scoring?G.r:G.gD};">${state.players.length} players · Lock: ${state.tournament.lock} · ${state.tournament.stake}</div>
+    </div>
+    ${!state.scoring?`<div style="padding:0 16px;display:flex;flex-direction:column;gap:8px;margin-bottom:8px;">
+      <div class="btn bb" onclick="state.regTier=null;go('add-player')">+ Register as a player</div>
+      <div class="btn bx" onclick="go('host-lobby')">Host lobby &amp; lock picks</div>
+    </div>`:''}
+    ${state.scoring?`<div style="padding:0 16px 8px;"><div class="btn br" onclick="go('host-scoring')">Enter scores →</div></div>`:''}
+    ${state.players.length>0?`<div class="sh">Field (${state.players.length})</div>${state.players.map(p=>`<div onclick="${!state.locked?`openPick(${p.id})`:'void 0'}" style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:.5px solid ${G.b};cursor:${state.locked?'default':'pointer'};">${av(p.name,p.avIdx,34)}<div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${G.t};">${p.name}</div><div style="font-size:11px;color:${Object.values(p.picks).filter(Boolean).length===4?G.g:G.m};margin-top:1px;">${Object.values(p.picks).filter(Boolean).length===4?'Lineup set ✓':state.locked?'No lineup':'Tap to build lineup'}</div></div>${tb_(p.tier)}</div>`).join('')}`:''}
+    ${lb.length>0?`<div class="sh">${state.scoring?'Live leaderboard':'Projected standings'} <span style="font-size:10px;color:${G.m};">(tiebreaker: A-tier score)</span></div>${lb.map((e,i)=>{const iF=i===0,iL=i===lb.length-1&&lb.length>1;return`<div style="margin:0 16px 6px;border-radius:10px;padding:11px 14px;background:${iF?G.rB:G.s};border:.5px solid ${iF?G.rB:G.b};display:flex;align-items:center;gap:8px;"><div style="font-size:14px;font-weight:500;color:${iF?G.r:G.m};width:24px;">#${i+1}</div>${av(e.name,e.avIdx,28)}<div style="flex:1;margin-left:4px;font-size:13px;font-weight:500;color:${iF?G.r:G.t};">${e.name}</div><div style="font-size:14px;font-weight:500;color:${iF?G.r:iL?G.a:G.g};">${e.total>0?'+':''}${e.total}</div></div>`;}).join('')}${lb.length>1?`<div style="margin:0 16px 8px;border-radius:10px;padding:10px 14px;background:${G.aB};font-size:12px;color:${G.aT};">⚠ ${lb[lb.length-1].name} on the hook — ${state.tournament?.stake}</div>`:''}`:''}<div style="height:8px;"></div>`;
+}
 function renderHostSetup(){
-  return `<div class="screen active">
-    ${sb()}${topbar('Create tournament','back()')}
+  return `<div class="scr on">${sb()}${topbar('Create tournament','back()')}
     <div class="scroll" style="padding:12px 16px;display:flex;flex-direction:column;gap:14px;">
       <div><div style="font-size:12px;color:${G.m};margin-bottom:6px;">Tournament name</div><input id="t-name" class="inp" placeholder="e.g. Club Championship 2025" value="${state.tName}"/></div>
-      <div><div style="font-size:12px;color:${G.m};margin-bottom:8px;">Pick lock time</div>
-        <div style="display:flex;gap:8px;">${["7:00 AM","7:30 AM","8:00 AM","8:30 AM"].map(t=>`<div onclick="state.tLock='${t}';render()" style="flex:1;text-align:center;padding:9px 4px;border-radius:10px;font-size:11px;font-weight:500;background:${state.tLock===t?G.gB:G.s};color:${state.tLock===t?G.gT:G.m};border:.5px solid ${state.tLock===t?'#639922':G.b};cursor:pointer;">${t}</div>`).join('')}</div>
-      </div>
-      <div><div style="font-size:12px;color:${G.m};margin-bottom:8px;">Stake</div>
-        ${["Loser buys the round","Bragging rights only","Loser picks tee time"].map(st=>`<div onclick="state.tStake='${st}';render()" style="margin-bottom:8px;border-radius:10px;padding:12px 14px;background:${state.tStake===st?G.gB:G.s};border:.5px solid ${state.tStake===st?'#639922':G.b};cursor:pointer;font-size:13px;color:${state.tStake===st?G.gT:G.t};">${st}</div>`).join('')}
-      </div>
+      <div><div style="font-size:12px;color:${G.m};margin-bottom:8px;">Pick lock time</div><div style="display:flex;gap:8px;">${["7:00 AM","7:30 AM","8:00 AM","8:30 AM"].map(t=>`<div onclick="state.tLock='${t}';render()" style="flex:1;text-align:center;padding:9px 4px;border-radius:10px;font-size:11px;font-weight:500;background:${state.tLock===t?G.gB:G.s};color:${state.tLock===t?G.gT:G.m};border:.5px solid ${state.tLock===t?'#639922':G.b};cursor:pointer;">${t}</div>`).join('')}</div></div>
+      <div><div style="font-size:12px;color:${G.m};margin-bottom:8px;">Stake</div>${["Loser buys the round","Bragging rights only","Loser picks tee time"].map(st=>`<div onclick="state.tStake='${st}';render()" style="margin-bottom:8px;border-radius:10px;padding:12px 14px;background:${state.tStake===st?G.gB:G.s};border:.5px solid ${state.tStake===st?'#639922':G.b};cursor:pointer;font-size:13px;color:${state.tStake===st?G.gT:G.t};">${st}</div>`).join('')}</div>
       <div class="btn bg" onclick="createTournament()">Create tournament →</div>
-    </div>
-    ${nav('challenges')}
-  </div>`;
+    </div>${navHtml('challenges')}</div>`;
 }
 function createTournament(){
   const n=document.getElementById('t-name').value.trim();
-  if(!n){alert('Enter a tournament name');return;}
+  if(!n){showToast('Enter a tournament name');return;}
   state.tName=n;
   state.tournament={name:n,lock:state.tLock,stake:state.tStake,code:'PATTON-4821'};
-  state.chalTab=2;
-  go('host-lobby');
+  state.chalTab=2;saveState();go('host-lobby');
 }
-
 function renderHostLobby(){
-  return `<div class="screen active">
-    ${sb()}${topbar('Host lobby','back()')}
+  return `<div class="scr on">${sb()}${topbar('Host lobby','back()')}
     <div class="scroll">
       <div style="margin:12px 16px;border-radius:12px;padding:20px;background:${G.gB};text-align:center;">
         <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:${G.gD};margin-bottom:8px;">Share this code</div>
         <div style="font-size:32px;font-weight:500;color:${G.gT};letter-spacing:.12em;margin-bottom:6px;">PATTON-4821</div>
         <div style="font-size:12px;color:${G.gD};">${state.tournament?.name} · Lock: ${state.tournament?.lock}</div>
       </div>
-      <div style="padding:0 16px 8px;display:flex;flex-direction:column;gap:8px;">
-        <div class="btn bb" onclick="state.regTier=null;go('add-player')">+ Register as a player</div>
-      </div>
+      <div style="padding:0 16px 8px;"><div class="btn bb" onclick="state.regTier=null;go('add-player')">+ Register as a player</div></div>
       <div class="sh">Field (${state.players.length} players)</div>
-      ${state.players.length===0?`<div style="margin:0 16px;padding:16px;border-radius:10px;background:${G.s};text-align:center;font-size:13px;color:${G.m};">No players yet. Go back and tap "+ Register as a player".</div>`
-        :state.players.map(p=>`<div style="margin:0 16px 6px;border-radius:10px;padding:10px 14px;background:${G.s};border:.5px solid ${G.b};display:flex;align-items:center;gap:10px;">${av(p.name,p.avIdx,34)}<div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${G.t};">${p.name}</div><div style="font-size:11px;color:${Object.values(p.picks).filter(Boolean).length===4?G.g:G.m};margin-top:1px;">${Object.values(p.picks).filter(Boolean).length===4?'Lineup locked ✓':'Needs lineup'}</div></div>${tb(p.tier)}</div>`).join('')}
+      ${state.players.length===0?`<div style="margin:0 16px;padding:16px;border-radius:10px;background:${G.s};text-align:center;font-size:13px;color:${G.m};">No players yet. Tap "+ Register as a player" above.</div>`:state.players.map(p=>`<div style="margin:0 16px 6px;border-radius:10px;padding:10px 14px;background:${G.s};border:.5px solid ${G.b};display:flex;align-items:center;gap:10px;">${av(p.name,p.avIdx,34)}<div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${G.t};">${p.name}</div><div style="font-size:11px;color:${Object.values(p.picks||{}).filter(Boolean).length===4?G.g:G.m};margin-top:1px;">${Object.values(p.picks||{}).filter(Boolean).length===4?'Lineup locked ✓':'Needs lineup'}</div></div>${tb_(p.tier)}</div>`).join('')}
       <div style="padding:16px;display:flex;flex-direction:column;gap:8px;">
         <div class="btn bg" onclick="lockAndStart()">Lock picks &amp; start scoring →</div>
         <div style="font-size:11px;color:${G.m};text-align:center;">Freezes all picks. Score entry on next screen.</div>
       </div>
-    </div>
-    ${nav('challenges')}
-  </div>`;
+    </div>${navHtml('challenges')}</div>`;
 }
-function lockAndStart(){state.locked=true;state.scoring=true;go('host-scoring');}
-
+function lockAndStart(){state.locked=true;state.scoring=true;saveState();go('host-scoring');}
 function renderAddPlayer(){
-  return `<div class="screen active">
-    ${sb()}${topbar('Register & join','back()')}
+  return `<div class="scr on">${sb()}${topbar('Register & join','back()')}
     <div class="scroll" style="padding:12px 16px;display:flex;flex-direction:column;gap:12px;">
       ${state.tournament?`<div style="border-radius:10px;padding:10px 14px;background:${G.gB};"><div style="font-size:13px;font-weight:500;color:${G.gT};">${state.tournament.name}</div><div style="font-size:11px;color:${G.gD};margin-top:2px;">Code: PATTON-4821 · Lock: ${state.tournament.lock}</div></div>`:''}
       <div><div style="font-size:12px;color:${G.m};margin-bottom:6px;">Your full name</div><input id="reg-name" class="inp" placeholder="e.g. John Smith"/></div>
-      <div><div style="font-size:12px;color:${G.m};margin-bottom:8px;">Your skill tier — be honest</div>
+      <div><div style="font-size:12px;color:${G.m};margin-bottom:8px;">Your skill tier</div>
         ${Object.entries(TIERS).map(([k,t])=>`<div onclick="state.regTier='${k}';render()" style="margin-bottom:8px;border-radius:10px;padding:12px 14px;background:${state.regTier===k?t.bg:G.s};border:.5px solid ${state.regTier===k?t.br:G.b};cursor:pointer;display:flex;align-items:center;gap:12px;">
           <div style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.2);border:2px solid ${t.br};display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:16px;font-weight:600;color:${t.c};">${k}</span></div>
           <div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${state.regTier===k?t.c:G.t};">${t.l}</div><div style="font-size:12px;color:${G.m};margin-top:1px;">${t.d}</div></div>
-          ${state.regTier===k?`<span style="color:${t.c};font-size:16px;">✓</span>`:''}
+          ${state.regTier===k?`<span style="color:${t.c};">✓</span>`:''}
         </div>`).join('')}
       </div>
       <div id="reg-err" style="font-size:12px;color:${G.r};display:none;"></div>
       <div class="btn bg" onclick="registerPlayer()">Register &amp; build lineup →</div>
-    </div>
-    ${nav('challenges')}
-  </div>`;
+    </div>${navHtml('challenges')}</div>`;
 }
 function registerPlayer(){
   const name=document.getElementById('reg-name').value.trim();
@@ -568,16 +1178,13 @@ function registerPlayer(){
   state.currentPid=id;
   state.pickDraft={A:null,B:null,C:null,D:null};
   state.regTier=null;
-  go('player-pick');
+  saveState();go('player-pick');
 }
-
 function openPick(id){
   const p=state.players.find(x=>x.id===id);if(!p)return;
-  state.currentPid=id;
-  state.pickDraft={...p.picks};
+  state.currentPid=id;state.pickDraft={...p.picks};
   go('player-pick');
 }
-
 function renderPlayerPick(){
   const cp=state.players.find(x=>x.id===state.currentPid);
   if(!cp) return renderChallenges();
@@ -585,100 +1192,242 @@ function renderPlayerPick(){
   let slots='';
   ['A','B','C','D'].forEach(tier=>{
     const pk=state.pickDraft[tier];const t=TIERS[tier];
-    slots+=`<div onclick="if(${pk?'true':'false'}){state.pickDraft['${tier}']=null;render()}" style="flex:1;height:60px;border-radius:12px;background:${pk?t.bg:G.s2};border:1.5px solid ${pk?t.br:G.b};display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:${pk?'pointer':'default'};padding:4px;">
-      ${pk?`${av(pk.name,pk.avIdx,20)}<div style="font-size:8px;color:${t.c};margin-top:2px;text-align:center;max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${pk.name.split(' ')[0]}</div><div style="font-size:7px;color:${t.c};opacity:.6;">remove</div>`:`<div style="font-size:16px;font-weight:600;color:${G.m};">${tier}</div><div style="font-size:8px;color:${G.m};">empty</div>`}
-    </div>`;
+    slots+=`<div onclick="if(${pk?'true':'false'}){state.pickDraft['${tier}']=null;render()}" style="flex:1;height:60px;border-radius:12px;background:${pk?t.bg:G.s2};border:1.5px solid ${pk?t.br:G.b};display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:${pk?'pointer':'default'};padding:4px;">${pk?`${av(pk.name,pk.avIdx,20)}<div style="font-size:8px;color:${t.c};margin-top:2px;text-align:center;max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${pk.name.split(' ')[0]}</div><div style="font-size:7px;color:${t.c};opacity:.6;">tap to remove</div>`:`<div style="font-size:16px;font-weight:600;color:${G.m};">${tier}</div><div style="font-size:8px;color:${G.m};">empty</div>`}</div>`;
   });
   let lists='';
   ['A','B','C','D'].forEach(tier=>{
-    const t=TIERS[tier];
-    const avail=state.players.filter(p=>p.tier===tier&&p.id!==cp.id);
-    lists+=`<div style="display:flex;align-items:center;gap:8px;padding:10px 16px 6px;"><span class="pill" style="background:${t.bg};color:${t.c};border:.5px solid ${t.br};">${tier}</span><span style="font-size:11px;color:${G.m};">${t.d} · ${avail.length} available</span></div>`;
-    if(avail.length===0) lists+=`<div style="padding:8px 16px;font-size:12px;color:${G.m};font-style:italic;">No ${tier}-tier players yet. Go back and register more players.</div>`;
+    const t=TIERS[tier];const avail=state.players.filter(p=>p.tier===tier&&p.id!==cp.id);
+    lists+=`<div style="display:flex;align-items:center;gap:8px;padding:10px 16px 6px;">${tb_(tier)}<span style="font-size:11px;color:${G.m};">${t.d} · ${avail.length} available</span></div>`;
+    if(avail.length===0) lists+=`<div style="padding:8px 16px;font-size:12px;color:${G.m};font-style:italic;">No ${tier}-tier players yet. Go back and register more.</div>`;
     else avail.forEach(p=>{
       const sel=state.pickDraft[tier]?.id===p.id;
       const used=Object.entries(state.pickDraft).some(([k,v])=>k!==tier&&v?.id===p.id);
       lists+=`<div onclick="${used?'void 0':`togglePick('${tier}',${p.id})`}" style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:.5px solid ${G.s2};background:${sel?t.bg:G.bg};cursor:${used?'default':'pointer'};opacity:${used?.35:1};">${av(p.name,p.avIdx,34)}<div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${sel?t.c:G.t};">${p.name}</div><div style="font-size:11px;color:${G.m};margin-top:1px;">${used?'Already in another slot':t.d}</div></div><div style="width:24px;height:24px;border-radius:50%;background:${sel?t.c:G.s2};display:flex;align-items:center;justify-content:center;border:${sel?'none':`.5px solid ${G.b}`};font-size:14px;color:${sel?G.bg:G.m};">${sel?'✓':''}</div></div>`;
     });
   });
-  return `<div class="screen active">
-    ${sb()}${topbar(`${cp.name}'s lineup`,'back()',`<span style="color:${filled===4?G.g:G.m};">${filled}/4</span>`)}
+  return `<div class="scr on">${sb()}${topbar(`${cp.name}'s lineup`,'back()',`<span style="color:${filled===4?G.g:G.m};">${filled}/4</span>`)}
     <div class="scroll">
       <div style="display:flex;gap:8px;padding:12px 16px;background:${G.s};border-bottom:.5px solid ${G.b};">${slots}</div>
       ${lists}
-      <div style="padding:12px 16px 20px;">
-        <div onclick="${filled===4?'savePicks()':'void 0'}" class="btn" style="background:${filled===4?G.gB:G.s2};color:${filled===4?G.gT:G.m};">
-          ${filled===4?'Lock in my lineup →':'Pick '+(4-filled)+' more player'+(4-filled===1?'':'s')}
-        </div>
-      </div>
-    </div>
-    ${nav('challenges')}
-  </div>`;
+      <div style="padding:12px 16px 20px;"><div onclick="${filled===4?'savePicks()':'void 0'}" class="btn" style="background:${filled===4?G.gB:G.s2};color:${filled===4?G.gT:G.m};">${filled===4?'Lock in lineup →':'Pick '+(4-filled)+' more'}</div></div>
+    </div>${navHtml('challenges')}</div>`;
 }
 function togglePick(tier,id){
   const p=state.players.find(x=>x.id===id);if(!p)return;
-  if(state.pickDraft[tier]?.id===id) state.pickDraft[tier]=null;
-  else state.pickDraft[tier]=p;
+  state.pickDraft[tier]=state.pickDraft[tier]?.id===id?null:p;
   render();
 }
 function savePicks(){
   state.players=state.players.map(p=>p.id===state.currentPid?{...p,picks:{...state.pickDraft}}:p);
-  // Show confirm then go back to add more players or challenges
-  const app=document.getElementById('app');
-  app.innerHTML=`<div class="screen active">
-    ${sb()}${topbar('Lineup locked in','back()')}
+  saveState();
+  document.getElementById('app').innerHTML=`<div class="scr on">${sb()}${topbar('Lineup locked','back()')}
     <div class="scroll" style="padding:12px 16px;display:flex;flex-direction:column;gap:10px;">
-      <div style="border-radius:12px;padding:24px;background:${G.gB};text-align:center;">
-        <div style="font-size:40px;margin-bottom:8px;">✅</div>
-        <div style="font-size:16px;font-weight:500;color:${G.gT};">${state.players.find(x=>x.id===state.currentPid)?.name}'s lineup is locked</div>
-        <div style="font-size:12px;color:${G.gD};margin-top:4px;">Check back when scoring starts</div>
-      </div>
-      ${['A','B','C','D'].map(tier=>{const pk=state.pickDraft[tier];const t=TIERS[tier];if(!pk)return'';return `<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;background:${t.bg};border:.5px solid ${t.br};"><span class="pill" style="background:rgba(0,0,0,.2);color:${t.c};border:.5px solid ${t.br};">${tier}</span>${av(pk.name,pk.avIdx,28)}<div style="flex:1;font-size:13px;font-weight:500;color:${t.c};">${pk.name}</div></div>`;}).join('')}
-      <div style="display:flex;gap:8px;margin-top:8px;">
-        <div class="btn bb" style="flex:1;" onclick="state.regTier=null;go('add-player')">+ Add another player</div>
-        <div class="btn bg" style="flex:1;" onclick="state.chalTab=2;go('challenges')">Back to tournament</div>
-      </div>
-    </div>
-    ${nav('challenges')}
-  </div>`;
+      <div style="border-radius:12px;padding:24px;background:${G.gB};text-align:center;"><div style="font-size:40px;margin-bottom:8px;">✅</div><div style="font-size:16px;font-weight:500;color:${G.gT};">${state.players.find(x=>x.id===state.currentPid)?.name}'s lineup locked</div></div>
+      ${['A','B','C','D'].map(tier=>{const pk=state.pickDraft[tier];const t=TIERS[tier];if(!pk)return'';return`<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;background:${t.bg};border:.5px solid ${t.br};">${tb_(tier)}${av(pk.name,pk.avIdx,28)}<div style="flex:1;font-size:13px;font-weight:500;color:${t.c};">${pk.name}</div></div>`;}).join('')}
+      <div style="display:flex;gap:8px;"><div class="btn bb" style="flex:1;" onclick="state.regTier=null;go('add-player')">+ Add player</div><div class="btn bg" style="flex:1;" onclick="state.chalTab=2;go('challenges')">Tournament</div></div>
+    </div>${navHtml('challenges')}</div>`;
 }
-
 function renderHostScoring(){
   const lb=calcLB();
-  return `<div class="screen active">
-    ${sb()}${topbar('Scores & leaderboard','back()')}
+  return `<div class="scr on">${sb()}${topbar('Scores & leaderboard','back()')}
     <div class="scroll">
-      <div style="margin:10px 16px;border-radius:10px;padding:10px 14px;background:${G.rB};display:flex;justify-content:space-between;">
-        <span style="font-size:13px;font-weight:500;color:${G.r};">Round in progress</span>
-        <span style="font-size:11px;color:${G.r};">Picks locked</span>
-      </div>
+      <div style="margin:10px 16px;border-radius:10px;padding:10px 14px;background:${G.rB};display:flex;justify-content:space-between;"><span style="font-size:13px;font-weight:500;color:${G.r};">Round in progress</span><span style="font-size:11px;color:${G.r};">Picks locked</span></div>
       <div class="sh">Enter scores (to par)</div>
-      ${state.players.map(p=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:.5px solid ${G.b};">${av(p.name,p.avIdx,32)}<div style="flex:1;font-size:13px;font-weight:500;color:${G.t};">${p.name}</div>${tb(p.tier)}<input oninput="updateScore(${p.id},this.value)" value="${p.score??''}" placeholder="+/-" style="width:52px;border-radius:8px;padding:8px;font-size:14px;font-weight:500;background:${G.s};border:.5px solid ${G.b};color:${G.t};font-family:inherit;outline:none;text-align:center;margin-left:8px;"/></div>`).join('')}
-      <div class="sh">Live leaderboard</div>
-      ${lb.length===0?`<div style="margin:0 16px;padding:14px;border-radius:10px;background:${G.s};text-align:center;font-size:13px;color:${G.m};">No complete lineups yet.</div>`
-        :lb.map((e,i)=>{const iF=i===0,iL=i===lb.length-1&&lb.length>1;return `<div style="margin:0 16px 8px;border-radius:10px;padding:12px 14px;background:${iF?G.rB:G.s};border:.5px solid ${iF?G.rB:G.b};">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><div style="font-size:15px;font-weight:500;color:${iF?G.r:G.m};width:28px;">#${i+1}</div>${av(e.name,e.avIdx,28)}<div style="flex:1;margin-left:4px;font-size:13px;font-weight:500;color:${iF?G.r:G.t};">${e.name}</div><div style="font-size:16px;font-weight:500;color:${iF?G.r:iL?G.a:G.g};">${e.total>0?'+':''}${e.total}</div></div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">${['A','B','C','D'].map(tier=>{const pk=e.picks[tier];const t=TIERS[tier];const live=state.players.find(r=>r.id===pk?.id);const sc=live?.score;if(!pk)return'';return `<div style="display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;background:${t.bg};"><span style="font-size:10px;font-weight:600;color:${t.c};">${tier}:</span><span style="font-size:10px;color:${t.c};">${pk.name.split(' ')[0]}</span>${sc!=null?`<span style="font-size:10px;font-weight:500;color:${sc<=0?G.g:G.r};">${sc>0?'+':''}${sc}</span>`:''}</div>`;}).join('')}</div>
-          ${iL?`<div style="font-size:11px;color:${G.aD};margin-top:8px;">⚠ On the hook — ${state.tournament?.stake}</div>`:''}
-        </div>`;}).join('')}
+      ${state.players.map(p=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:.5px solid ${G.b};">${av(p.name,p.avIdx,32)}<div style="flex:1;font-size:13px;font-weight:500;color:${G.t};">${p.name}</div>${tb_(p.tier)}<input oninput="updateTScore(${p.id},this.value)" value="${p.score??''}" placeholder="+/-" style="width:52px;border-radius:8px;padding:8px;font-size:14px;font-weight:500;background:${G.s};border:.5px solid ${G.b};color:${G.t};font-family:inherit;outline:none;text-align:center;margin-left:8px;"/></div>`).join('')}
+      <div class="sh">Live leaderboard <span style="font-size:10px;color:${G.m};">(tiebreaker: A-tier score)</span></div>
+      ${lb.length===0?`<div style="margin:0 16px;padding:14px;border-radius:10px;background:${G.s};text-align:center;font-size:13px;color:${G.m};">No complete lineups yet.</div>`:lb.map((e,i)=>{const iF=i===0,iL=i===lb.length-1&&lb.length>1;return`<div style="margin:0 16px 8px;border-radius:10px;padding:12px 14px;background:${iF?G.rB:G.s};border:.5px solid ${iF?G.rB:G.b};">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><div style="font-size:15px;font-weight:500;color:${iF?G.r:G.m};width:28px;">#${i+1}</div>${av(e.name,e.avIdx,28)}<div style="flex:1;margin-left:4px;font-size:13px;font-weight:500;color:${iF?G.r:G.t};">${e.name}</div><div style="font-size:16px;font-weight:500;color:${iF?G.r:iL?G.a:G.g};">${e.total>0?'+':''}${e.total}</div></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">${['A','B','C','D'].map(tier=>{const pk=e.picks[tier];const t=TIERS[tier];const live=state.players.find(r=>r.id===pk?.id);const sc=live?.score;if(!pk)return'';return`<div style="display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;background:${t.bg};"><span style="font-size:10px;font-weight:600;color:${t.c};">${tier}:</span><span style="font-size:10px;color:${t.c};">${pk.name.split(' ')[0]}</span>${sc!=null?`<span style="font-size:10px;font-weight:500;color:${sc<=0?G.g:G.r};">${sc>0?'+':''}${sc}</span>`:''}</div>`;}).join('')}</div>
+        ${iL?`<div style="font-size:11px;color:${G.aD};margin-top:8px;">⚠ On the hook — ${state.tournament?.stake}</div>`:''}
+      </div>`;}).join('')}
       <div style="height:16px;"></div>
-    </div>
-    ${nav('challenges')}
-  </div>`;
+    </div>${navHtml('challenges')}</div>`;
 }
-function updateScore(id,val){
+function updateTScore(id,val){
   const n=parseInt(val);
   state.players=state.players.map(p=>p.id===id?{...p,score:isNaN(n)?null:n}:p);
-  // re-render just the leaderboard section without full re-render (keeps inputs focused)
-  const lb=calcLB();
-  const lbEl=document.querySelector('[data-lb]');
-  if(lbEl){
-    if(lb.length===0){lbEl.innerHTML=`<div style="margin:0 16px;padding:14px;border-radius:10px;background:${G.s};text-align:center;font-size:13px;color:${G.m};">No complete lineups yet.</div>`;}
-    else{lbEl.innerHTML=lb.map((e,i)=>{const iF=i===0,iL=i===lb.length-1&&lb.length>1;return `<div style="margin:0 16px 8px;border-radius:10px;padding:12px 14px;background:${iF?G.rB:G.s};border:.5px solid ${iF?G.rB:G.b};"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><div style="font-size:15px;font-weight:500;color:${iF?G.r:G.m};width:28px;">#${i+1}</div>${av(e.name,e.avIdx,28)}<div style="flex:1;margin-left:4px;font-size:13px;font-weight:500;color:${iF?G.r:G.t};">${e.name}</div><div style="font-size:16px;font-weight:500;color:${iF?G.r:iL?G.a:G.g};">${e.total>0?'+':''}${e.total}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;">${['A','B','C','D'].map(tier=>{const pk=e.picks[tier];const t=TIERS[tier];const live=state.players.find(r=>r.id===pk?.id);const sc=live?.score;if(!pk)return'';return `<div style="display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;background:${t.bg};"><span style="font-size:10px;font-weight:600;color:${t.c};">${tier}:</span><span style="font-size:10px;color:${t.c};">${pk.name.split(' ')[0]}</span>${sc!=null?`<span style="font-size:10px;font-weight:500;color:${sc<=0?G.g:G.r};">${sc>0?'+':''}${sc}</span>`:''}</div>`;}).join('')}</div>${iL?`<div style="font-size:11px;color:${G.aD};margin-top:8px;">⚠ On the hook — ${state.tournament?.stake}</div>`:''}</div>`;}).join('');}
+  saveState();
+}
+
+// ── AI HELPERS ───────────────────────────────────────────────────────
+function getMatchScore(p, userHdcp){
+  const hdcpDiff=Math.abs(parseFloat(p.h)-userHdcp);
+  const hdcpScore=Math.max(0,30-hdcpDiff*3);
+  const mutualScore=Math.min(25,p.mu*12);
+  const roundsScore=Math.min(20,Math.round(p.rd/2));
+  const availScore=p.av==='Flexible'?25:p.av==='Sat AM'?20:15;
+  return Math.min(99,Math.round(hdcpScore+mutualScore+roundsScore+availScore));
+}
+
+async function getWeeklySummary(){
+  if(!window.AI?.hasKey()){go('settings');return;}
+  state.aiWeeklySummaryLoading=true;render();
+  try{
+    const stats=computeStats();
+    const summary=await AI.getWeeklySummary(stats,state.challenges,state.rounds);
+    state.aiWeeklySummary=summary;
+    state.aiWeeklySummaryLoading=false;
+    saveState();render();
+  }catch(e){
+    state.aiWeeklySummaryLoading=false;
+    showToast('AI error: '+e.message);render();
   }
 }
 
-// ── BOOT ─────────────────────────────────────────────────────────────
+async function getAIDraft(playerIdx){
+  if(!window.AI?.hasKey()){go('settings');return;}
+  state.aiDraftLoading=true;render();
+  try{
+    const p=NET_DATA[playerIdx];
+    const note=state.notes[playerIdx];
+    const lastReq=state.roundRequests?.find(r=>r.playerIdx===playerIdx);
+    const draft=await AI.draftRoundRequest(p,note?.text||'',lastReq?.date||null,state.user.name);
+    state.aiDraft=draft;
+    state.aiDraftLoading=false;
+    saveState();render();
+  }catch(e){
+    state.aiDraftLoading=false;
+    showToast('AI error: '+e.message);render();
+  }
+}
+
+async function getAIChallenge(){
+  if(!window.AI?.hasKey()){go('settings');return;}
+  state.aiChallengeLoading=true;render();
+  try{
+    const stats=computeStats();
+    const raw=await AI.getChallengeSuggestion(stats,state.friends,state.challenges);
+    // Parse the structured response: Title/Metric/Duration/Stake/Why
+    const parse=(label)=>{const m=raw.match(new RegExp(label+':\\s*(.+)','i'));return m?m[1].trim():''};
+    state.aiChallenge={
+      title:parse('Title'),
+      metric:parse('Metric'),
+      duration:parse('Duration'),
+      stake:parse('Stake'),
+      why:parse('Why'),
+      raw
+    };
+    state.aiChallengeLoading=false;
+    saveState();render();
+  }catch(e){
+    state.aiChallengeLoading=false;
+    showToast('AI error: '+e.message);render();
+  }
+}
+
+function applyAIChallenge(){
+  const ac=state.aiChallenge;
+  if(!ac) return;
+  // Try to match metric to a known METRICS option
+  const metricText=(ac.metric||'').toLowerCase();
+  const matched=METRICS.find(m=>metricText.includes(m.l.toLowerCase().split(' ').slice(-1)[0])||metricText.includes(m.id));
+  if(matched){
+    state.ncMetric=matched.id;
+  } else if(metricText){
+    state.ncMetric='custom';
+    state.ncCustomMetric=ac.metric;
+  }
+  // Try to match duration to a preset
+  const durText=(ac.duration||'').toLowerCase();
+  const presets=['1 week','2 weeks','30 days','60 days'];
+  const matchedDur=presets.find(p=>durText.includes(p));
+  if(matchedDur){
+    state.ncDurType='preset';
+    state.ncDur=matchedDur;
+  } else if(durText.includes('single')||durText.includes('one round')){
+    state.ncDurType='single';
+  } else if(durText){
+    state.ncDurType='custom';
+    state.ncCustomDur=ac.duration;
+  }
+  // Try to match stake
+  const stakeText=ac.stake||'';
+  const stakes=["Loser buys the round","Bragging rights","Loser picks tee time","Loser carries the bag"];
+  const matchedStake=stakes.find(s=>stakeText.toLowerCase().includes(s.toLowerCase().split(' ').slice(0,2).join(' ').toLowerCase()));
+  if(matchedStake) state.ncStake=matchedStake;
+  showToast('Suggestion applied!');
+  render();
+}
+
+// ══ AI SETTINGS ════════════════════════════════════════════════════════
+function renderSettings(){
+  const hasKey=window.AI?.hasKey();
+  return `<div class="scr on">
+    ${sb()}${topbar('AI Settings','back()')}
+    <div class="scroll" style="padding:12px 16px;display:flex;flex-direction:column;gap:14px;">
+      <div style="border-radius:12px;padding:16px;background:${G.gB};">
+        <div style="font-size:14px;font-weight:500;color:${G.gT};margin-bottom:6px;">Claude AI features</div>
+        <div style="font-size:12px;color:${G.gD};line-height:1.7;">Enables the AI Caddie on every hole, post-round coaching recaps, smart challenge suggestions, and network message drafts.</div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:${G.m};margin-bottom:6px;">Anthropic API Key</div>
+        <input id="ai-key-inp" class="inp" type="password" placeholder="sk-ant-api03-..." value="${window.AI?.getKey()||''}"/>
+        <div style="font-size:11px;color:${G.m};margin-top:6px;line-height:1.6;">Stored locally on your device only. Get a free key at console.anthropic.com</div>
+      </div>
+      ${hasKey?`<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:${G.gB};border:.5px solid #639922;">
+        <div style="width:8px;height:8px;border-radius:50%;background:${G.g};flex-shrink:0;"></div>
+        <div style="font-size:13px;color:${G.gT};">AI features active</div>
+      </div>`:`<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:${G.s};border:.5px solid ${G.b};">
+        <div style="width:8px;height:8px;border-radius:50%;background:${G.m};flex-shrink:0;"></div>
+        <div style="font-size:13px;color:${G.m};">AI features inactive — add a key to enable</div>
+      </div>`}
+      <div class="btn bg" onclick="saveAIKey()">Save & activate</div>
+      ${hasKey?`<div onclick="clearAIKey()" style="text-align:center;font-size:12px;color:${G.r};cursor:pointer;padding:8px;">Remove API key</div>`:''}
+    </div>
+    ${navHtml('profile')}
+  </div>`;}
+
+function saveAIKey(){
+  const key=document.getElementById('ai-key-inp')?.value.trim();
+  if(!key){showToast('Enter an API key');return;}
+  if(window.AI) window.AI.setKey(key);
+  else localStorage.setItem('patton_claude_key',key);
+  showToast('API key saved — AI features active ✓');
+  back();
+}
+function clearAIKey(){
+  if(window.AI) window.AI.setKey('');
+  else localStorage.removeItem('patton_claude_key');
+  showToast('API key removed');
+  render();
+}
+
+async function askAICaddie(holeIdx){
+  if(!window.AI?.hasKey()){go('settings');return;}
+  state.aiLoading=true;
+  render();
+  try{
+    const advice=await AI.getCaddieAdvice(holeIdx,HOLES_DEF[holeIdx],state.user.hdcp,state.caddieMem,computeStats());
+    if(!state.aiAdvice) state.aiAdvice={};
+    state.aiAdvice[holeIdx]=advice;
+    state.aiLoading=false;
+    saveState();render();
+  }catch(e){
+    state.aiLoading=false;
+    showToast('AI error: '+e.message);
+    render();
+  }
+}
+
+async function getAIRecap(){
+  if(!window.AI?.hasKey()){go('settings');return;}
+  state.aiRecapLoading=true;
+  render();
+  try{
+    const round=state.rounds[state.rounds.length-1];
+    const recap=await AI.getPostRoundRecap(round,state.caddieMem,state.user.hdcp);
+    state.aiRecap=recap;
+    state.aiRecapLoading=false;
+    saveState();render();
+  }catch(e){
+    state.aiRecapLoading=false;
+    showToast('AI error: '+e.message);
+    render();
+  }
+}
+
+// ── BOOT ────────────────────────────────────────────────────────────
+if(!state.onboarded) state.screen='onboard';
 render();
 </script>
 </body>
