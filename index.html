@@ -115,7 +115,8 @@ const DEFAULT_STATE={
   ],
   // tournament
   tournament:null, players:[], locked:false, scoring:false, uid:100,
-  regTier:null, currentPid:null, pickDraft:{A:null,B:null,C:null,D:null},
+  pickPhase:false,
+  regTier:null, regName:"", currentPid:null, pickDraft:{A:null,B:null,C:null,D:null},
   tName:"", tLock:"8:00 AM", tStake:"Loser buys the round",
   // new challenge wizard
   ncStep:0, ncType:"group", ncMetric:"hdcp", ncDur:"30 days",
@@ -155,6 +156,8 @@ if(state.onboarded===undefined) state.onboarded=false;
 if(!state.aiAdvice) state.aiAdvice={};
 if(state.aiRecap===undefined) state.aiRecap=null;
 if(state.aiChallenge===undefined) state.aiChallenge=null;
+if(state.pickPhase===undefined) state.pickPhase=false;
+if(state.regName===undefined) state.regName='';
 
 // ── HELPERS ──────────────────────────────────────────────────────────
 const ini=n=>n.trim().split(" ").filter(Boolean).map(w=>w[0].toUpperCase()).join("").slice(0,2)||"?";
@@ -1110,11 +1113,11 @@ function renderTournamentTab(){
       <div style="font-size:11px;color:${state.scoring?G.r:G.gD};">${state.players.length} players · Lock: ${state.tournament.lock} · ${state.tournament.stake}</div>
     </div>
     ${!state.scoring?`<div style="padding:0 16px;display:flex;flex-direction:column;gap:8px;margin-bottom:8px;">
-      <div class="btn bb" onclick="state.regTier=null;go('add-player')">+ Register as a player</div>
-      <div class="btn bx" onclick="go('host-lobby')">Host lobby &amp; lock picks</div>
+      ${!state.pickPhase?`<div class="btn bb" onclick="state.regTier=null;state.regName='';go('add-player')">+ Register a player</div>`:''}
+      <div class="btn bx" onclick="go('host-lobby')">Host lobby →</div>
     </div>`:''}
     ${state.scoring?`<div style="padding:0 16px 8px;"><div class="btn br" onclick="go('host-scoring')">Enter scores →</div></div>`:''}
-    ${state.players.length>0?`<div class="sh">Field (${state.players.length})</div>${state.players.map(p=>`<div onclick="${!state.locked?`openPick(${p.id})`:'void 0'}" style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:.5px solid ${G.b};cursor:${state.locked?'default':'pointer'};">${av(p.name,p.avIdx,34)}<div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${G.t};">${p.name}</div><div style="font-size:11px;color:${Object.values(p.picks).filter(Boolean).length===4?G.g:G.m};margin-top:1px;">${Object.values(p.picks).filter(Boolean).length===4?'Lineup set ✓':state.locked?'No lineup':'Tap to build lineup'}</div></div>${tb_(p.tier)}</div>`).join('')}`:''}
+    ${state.players.length>0?`<div class="sh">Field (${state.players.length})</div>${state.players.map(p=>{const picksDone=Object.values(p.picks).filter(Boolean).length===4;const canPick=state.pickPhase&&!state.scoring;return`<div onclick="${canPick?`openPick(${p.id})`:'void 0'}" style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:.5px solid ${G.b};cursor:${canPick?'pointer':'default'};">${av(p.name,p.avIdx,34)}<div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${G.t};">${p.name}</div><div style="font-size:11px;color:${picksDone?G.g:canPick?'#F5C842':G.m};margin-top:1px;">${picksDone?'Lineup set ✓':canPick?'Tap to pick lineup →':'Waiting for picks'}</div></div>${tb_(p.tier)}</div>`;}).join('')}`:''}
     ${lb.length>0?`<div class="sh">${state.scoring?'Live leaderboard':'Projected standings'} <span style="font-size:10px;color:${G.m};">(tiebreaker: A-tier score)</span></div>${lb.map((e,i)=>{const iF=i===0,iL=i===lb.length-1&&lb.length>1;return`<div style="margin:0 16px 6px;border-radius:10px;padding:11px 14px;background:${iF?G.rB:G.s};border:.5px solid ${iF?G.rB:G.b};display:flex;align-items:center;gap:8px;"><div style="font-size:14px;font-weight:500;color:${iF?G.r:G.m};width:24px;">#${i+1}</div>${av(e.name,e.avIdx,28)}<div style="flex:1;margin-left:4px;font-size:13px;font-weight:500;color:${iF?G.r:G.t};">${e.name}</div><div style="font-size:14px;font-weight:500;color:${iF?G.r:iL?G.a:G.g};">${e.total>0?'+':''}${e.total}</div></div>`;}).join('')}${lb.length>1?`<div style="margin:0 16px 8px;border-radius:10px;padding:10px 14px;background:${G.aB};font-size:12px;color:${G.aT};">⚠ ${lb[lb.length-1].name} on the hook — ${state.tournament?.stake}</div>`:''}`:''}<div style="height:8px;"></div>`;
 }
 function renderHostSetup(){
@@ -1131,54 +1134,129 @@ function createTournament(){
   if(!n){showToast('Enter a tournament name');return;}
   state.tName=n;
   state.tournament={name:n,lock:state.tLock,stake:state.tStake,code:'PATTON-4821'};
+  state.players=[];state.locked=false;state.scoring=false;state.pickPhase=false;
+  state.regTier=null;state.regName='';state.currentPid=null;
+  state.pickDraft={A:null,B:null,C:null,D:null};
   state.chalTab=2;saveState();go('host-lobby');
 }
 function renderHostLobby(){
+  const allPicksDone=state.players.length>0&&state.players.every(p=>Object.values(p.picks||{}).filter(Boolean).length===4);
+  const byTier={A:state.players.filter(p=>p.tier==='A'),B:state.players.filter(p=>p.tier==='B'),C:state.players.filter(p=>p.tier==='C'),D:state.players.filter(p=>p.tier==='D')};
+  const hasFourTiers=Object.values(byTier).every(arr=>arr.length>=1);
+
+  // Phase label
+  const phase=state.scoring?'Live scoring':state.pickPhase?'Picks open':'Registration open';
+  const phaseCol=state.scoring?G.r:state.pickPhase?G.gold:'#4A9EE0';
+
   return `<div class="scr on">${sb()}${topbar('Host lobby','back()')}
     <div class="scroll">
-      <div style="margin:12px 16px;border-radius:12px;padding:20px;background:${G.gB};text-align:center;">
-        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:${G.gD};margin-bottom:8px;">Share this code</div>
-        <div style="font-size:32px;font-weight:500;color:${G.gT};letter-spacing:.12em;margin-bottom:6px;">PATTON-4821</div>
-        <div style="font-size:12px;color:${G.gD};">${state.tournament?.name} · Lock: ${state.tournament?.lock}</div>
+      <!-- Code card -->
+      <div style="margin:12px 16px;border-radius:12px;padding:16px;background:${G.gB};">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+          <div>
+            <div style="font-size:14px;font-weight:500;color:${G.gT};">${state.tournament?.name}</div>
+            <div style="font-size:11px;color:${G.gD};margin-top:2px;">Stake: ${state.tournament?.stake}</div>
+          </div>
+          <span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:600;background:rgba(0,0,0,.3);color:${phaseCol};">${phase}</span>
+        </div>
+        <div style="text-align:center;padding:10px 0 4px;">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:${G.gD};margin-bottom:4px;">Share code</div>
+          <div style="font-size:28px;font-weight:600;color:${G.gT};letter-spacing:.12em;">PATTON-4821</div>
+        </div>
       </div>
-      <div style="padding:0 16px 8px;"><div class="btn bb" onclick="state.regTier=null;go('add-player')">+ Register as a player</div></div>
-      <div class="sh">Field (${state.players.length} players)</div>
-      ${state.players.length===0?`<div style="margin:0 16px;padding:16px;border-radius:10px;background:${G.s};text-align:center;font-size:13px;color:${G.m};">No players yet. Tap "+ Register as a player" above.</div>`:state.players.map(p=>`<div style="margin:0 16px 6px;border-radius:10px;padding:10px 14px;background:${G.s};border:.5px solid ${G.b};display:flex;align-items:center;gap:10px;">${av(p.name,p.avIdx,34)}<div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${G.t};">${p.name}</div><div style="font-size:11px;color:${Object.values(p.picks||{}).filter(Boolean).length===4?G.g:G.m};margin-top:1px;">${Object.values(p.picks||{}).filter(Boolean).length===4?'Lineup locked ✓':'Needs lineup'}</div></div>${tb_(p.tier)}</div>`).join('')}
-      <div style="padding:16px;display:flex;flex-direction:column;gap:8px;">
-        <div class="btn bg" onclick="lockAndStart()">Lock picks &amp; start scoring →</div>
-        <div style="font-size:11px;color:${G.m};text-align:center;">Freezes all picks. Score entry on next screen.</div>
+
+      <!-- PHASE 1: Registration open -->
+      ${!state.pickPhase&&!state.scoring?`
+      <div style="padding:0 16px 4px;">
+        <div class="btn bb" onclick="state.regTier=null;state.regName='';go('add-player')">+ Register a player</div>
       </div>
+      <div style="margin:8px 16px;padding:10px 14px;border-radius:10px;background:${G.s};border:.5px solid ${G.b};font-size:12px;color:${G.m};">
+        Register everyone before closing. You need at least 1 player in each tier (A/B/C/D) before picks can open.
+      </div>
+      <div style="padding:0 16px 0;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        ${['A','B','C','D'].map(k=>{const t=TIERS[k];const n=byTier[k].length;return`<div style="border-radius:10px;padding:10px 12px;background:${n>0?t.bg:G.s};border:.5px solid ${n>0?t.br:G.b};text-align:center;"><div style="font-size:18px;font-weight:700;color:${n>0?t.c:G.m};">${k}</div><div style="font-size:12px;color:${n>0?t.c:G.m};margin-top:2px;">${n} player${n!==1?'s':''}</div></div>`;}).join('')}
+      </div>
+      ${state.players.length>=4&&hasFourTiers?`<div style="padding:0 16px 16px;display:flex;flex-direction:column;gap:6px;">
+        <div class="btn bg" onclick="closeRegistration()">Close registration &amp; open picks →</div>
+        <div style="font-size:11px;color:${G.m};text-align:center;">No more registrations after this. Everyone then builds their lineup.</div>
+      </div>`:`<div style="padding:0 16px 16px;"><div style="padding:10px;border-radius:10px;background:${G.s2};text-align:center;font-size:12px;color:${G.m};">Need at least 1 player in each tier to open picks (${state.players.length} registered)</div></div>`}
+      `:''}
+
+      <!-- PHASE 2: Picks open -->
+      ${state.pickPhase&&!state.scoring?`
+      <div style="margin:0 16px 12px;padding:12px 14px;border-radius:10px;background:#2e2000;border:.5px solid #a07800;">
+        <div style="font-size:12px;font-weight:500;color:#F5C842;margin-bottom:4px;">🏌️ Picks are open</div>
+        <div style="font-size:12px;color:#a07800;">Each player taps their name below to build their fantasy lineup.</div>
+      </div>
+      ${allPicksDone?`<div style="padding:0 16px 8px;display:flex;flex-direction:column;gap:6px;">
+        <div class="btn bg" onclick="lockAndStart()">All picks in — start scoring →</div>
+      </div>`:''}
+      `:''}
+
+      <!-- Field list -->
+      <div class="sh">Field (${state.players.length})</div>
+      ${state.players.length===0
+        ?`<div style="margin:0 16px;padding:16px;border-radius:10px;background:${G.s};text-align:center;font-size:13px;color:${G.m};">No players yet.</div>`
+        :state.players.map(p=>{
+          const picksDone=Object.values(p.picks||{}).filter(Boolean).length===4;
+          const canPick=state.pickPhase&&!state.scoring;
+          return`<div onclick="${canPick?`openPick(${p.id})`:'void 0'}" style="margin:0 16px 6px;border-radius:10px;padding:10px 14px;background:${picksDone&&canPick?G.gB:G.s};border:.5px solid ${picksDone&&canPick?'#639922':G.b};display:flex;align-items:center;gap:10px;cursor:${canPick?'pointer':'default'};">${av(p.name,p.avIdx,34)}<div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${G.t};">${p.name}</div><div style="font-size:11px;color:${picksDone?G.g:canPick?'#F5C842':G.m};margin-top:1px;">${picksDone?'Lineup locked ✓':canPick?'Tap to pick lineup →':'Waiting for picks to open'}</div></div>${tb_(p.tier)}</div>`;
+        }).join('')}
+
+      <div style="height:20px;"></div>
     </div>${navHtml('challenges')}</div>`;
+}
+function closeRegistration(){
+  state.pickPhase=true;
+  state.locked=false;
+  saveState();
+  render();
+  showToast('Registration closed — picks are open!');
 }
 function lockAndStart(){state.locked=true;state.scoring=true;saveState();go('host-scoring');}
 function renderAddPlayer(){
-  return `<div class="scr on">${sb()}${topbar('Register & join','back()')}
+  return `<div class="scr on">${sb()}${topbar('Register player','back()')}
     <div class="scroll" style="padding:12px 16px;display:flex;flex-direction:column;gap:12px;">
-      ${state.tournament?`<div style="border-radius:10px;padding:10px 14px;background:${G.gB};"><div style="font-size:13px;font-weight:500;color:${G.gT};">${state.tournament.name}</div><div style="font-size:11px;color:${G.gD};margin-top:2px;">Code: PATTON-4821 · Lock: ${state.tournament.lock}</div></div>`:''}
-      <div><div style="font-size:12px;color:${G.m};margin-bottom:6px;">Your full name</div><input id="reg-name" class="inp" placeholder="e.g. John Smith"/></div>
-      <div><div style="font-size:12px;color:${G.m};margin-bottom:8px;">Your skill tier</div>
-        ${Object.entries(TIERS).map(([k,t])=>`<div onclick="state.regTier='${k}';render()" style="margin-bottom:8px;border-radius:10px;padding:12px 14px;background:${state.regTier===k?t.bg:G.s};border:.5px solid ${state.regTier===k?t.br:G.b};cursor:pointer;display:flex;align-items:center;gap:12px;">
+      ${state.tournament?`<div style="border-radius:10px;padding:10px 14px;background:${G.gB};"><div style="font-size:13px;font-weight:500;color:${G.gT};">${state.tournament.name}</div><div style="font-size:11px;color:${G.gD};margin-top:2px;">Code: PATTON-4821 · ${state.players.length} registered so far</div></div>`:''}
+      <div><div style="font-size:12px;color:${G.m};margin-bottom:6px;">Full name</div><input id="reg-name" class="inp" placeholder="e.g. John Smith" value="${state.regName||''}" oninput="state.regName=this.value"/></div>
+      <div><div style="font-size:12px;color:${G.m};margin-bottom:8px;">Skill tier</div>
+        ${Object.entries(TIERS).map(([k,t])=>`<div onclick="state.regName=(document.getElementById('reg-name')?.value||state.regName||'');state.regTier='${k}';render()" style="margin-bottom:8px;border-radius:10px;padding:12px 14px;background:${state.regTier===k?t.bg:G.s};border:.5px solid ${state.regTier===k?t.br:G.b};cursor:pointer;display:flex;align-items:center;gap:12px;">
           <div style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.2);border:2px solid ${t.br};display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:16px;font-weight:600;color:${t.c};">${k}</span></div>
           <div style="flex:1;"><div style="font-size:13px;font-weight:500;color:${state.regTier===k?t.c:G.t};">${t.l}</div><div style="font-size:12px;color:${G.m};margin-top:1px;">${t.d}</div></div>
           ${state.regTier===k?`<span style="color:${t.c};">✓</span>`:''}
         </div>`).join('')}
       </div>
       <div id="reg-err" style="font-size:12px;color:${G.r};display:none;"></div>
-      <div class="btn bg" onclick="registerPlayer()">Register &amp; build lineup →</div>
+      <div class="btn bg" onclick="registerPlayer()">Register →</div>
+      <div style="font-size:12px;color:${G.m};text-align:center;">Everyone registers first. Picks open once registration closes.</div>
     </div>${navHtml('challenges')}</div>`;
 }
 function registerPlayer(){
-  const name=document.getElementById('reg-name').value.trim();
+  const name=(document.getElementById('reg-name')?.value||state.regName||'').trim();
   const errEl=document.getElementById('reg-err');
   if(!name){errEl.textContent='Enter your name';errEl.style.display='block';return;}
   if(!state.regTier){errEl.textContent='Pick your tier';errEl.style.display='block';return;}
   errEl.style.display='none';
   const id=state.uid++;
   state.players.push({id,name,tier:state.regTier,avIdx:state.players.length,picks:{A:null,B:null,C:null,D:null},score:null});
-  state.currentPid=id;
-  state.pickDraft={A:null,B:null,C:null,D:null};
   state.regTier=null;
-  saveState();go('player-pick');
+  state.regName='';
+  saveState();
+  // Show confirmation then go back to lobby
+  document.getElementById('app').innerHTML=`<div class="scr on">${sb()}${topbar('Registered!','back()')}
+    <div class="scroll" style="padding:16px;display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center;">
+      <div style="font-size:48px;margin-top:24px;">✅</div>
+      <div style="font-size:18px;font-weight:600;color:${G.t};">${name} registered</div>
+      <div style="font-size:13px;color:${G.m};max-width:280px;">Picks open once the host closes registration. Come back then to build your fantasy lineup.</div>
+      <div style="width:100%;margin-top:8px;display:flex;flex-direction:column;gap:8px;">
+        <div class="btn bb" onclick="state.regTier=null;state.regName='';go('add-player')">+ Register another player</div>
+        <div class="btn bg" onclick="go('host-lobby')">Back to lobby →</div>
+      </div>
+      <div style="margin-top:8px;padding:12px 16px;border-radius:10px;background:${G.s};border:.5px solid ${G.b};width:100%;">
+        <div style="font-size:11px;color:${G.m};margin-bottom:6px;">Registered so far (${state.players.length})</div>
+        ${state.players.map(p=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;"><div style="font-size:12px;color:${G.t};flex:1;">${p.name}</div>${tb_(p.tier)}</div>`).join('')}
+      </div>
+    </div>${navHtml('challenges')}</div>`;
 }
 function openPick(id){
   const p=state.players.find(x=>x.id===id);if(!p)return;
@@ -1218,14 +1296,11 @@ function togglePick(tier,id){
   render();
 }
 function savePicks(){
+  const playerName=state.players.find(x=>x.id===state.currentPid)?.name||'Player';
   state.players=state.players.map(p=>p.id===state.currentPid?{...p,picks:{...state.pickDraft}}:p);
   saveState();
-  document.getElementById('app').innerHTML=`<div class="scr on">${sb()}${topbar('Lineup locked','back()')}
-    <div class="scroll" style="padding:12px 16px;display:flex;flex-direction:column;gap:10px;">
-      <div style="border-radius:12px;padding:24px;background:${G.gB};text-align:center;"><div style="font-size:40px;margin-bottom:8px;">✅</div><div style="font-size:16px;font-weight:500;color:${G.gT};">${state.players.find(x=>x.id===state.currentPid)?.name}'s lineup locked</div></div>
-      ${['A','B','C','D'].map(tier=>{const pk=state.pickDraft[tier];const t=TIERS[tier];if(!pk)return'';return`<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;background:${t.bg};border:.5px solid ${t.br};">${tb_(tier)}${av(pk.name,pk.avIdx,28)}<div style="flex:1;font-size:13px;font-weight:500;color:${t.c};">${pk.name}</div></div>`;}).join('')}
-      <div style="display:flex;gap:8px;"><div class="btn bb" style="flex:1;" onclick="state.regTier=null;go('add-player')">+ Add player</div><div class="btn bg" style="flex:1;" onclick="state.chalTab=2;go('challenges')">Tournament</div></div>
-    </div>${navHtml('challenges')}</div>`;
+  showToast(playerName+"'s lineup locked ✓");
+  go('host-lobby');
 }
 function renderHostScoring(){
   const lb=calcLB();
